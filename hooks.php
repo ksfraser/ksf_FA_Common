@@ -46,7 +46,7 @@ class hooks_ksf_FA_Common extends hooks {
         }
         
         chdir($module_dir);
-        $output = [];
+        $output = array();
         $return_code = 0;
         exec('composer install --no-interaction --prefer-dist 2>&1', $output, $return_code);
         if ($return_code !== 0) {
