@@ -23,6 +23,24 @@
  *    - Define SS_<MODULE> constant (section << 8)
  *    - Define SA_<MODULE>VIEW and SA_<MODULE>MANAGE in install_access()
  * 
+ * 5. CONTACT TYPES (if the module provides contact types used across the platform)
+ *    - Contact types are a PLATFORM concept (not Calendar-specific).
+ *    - Add ksfraser/ksf-fa-common to composer.json (path: ../ksf_FA_Common)
+ *    - Register types in activate_extension() and clean up in deactivate_extension():
+ *        function activate_extension($company, $check_only=true) {
+ *            // ... existing setup ...
+ *            \KsfCommon\ContactType\ContactTypeRegistry::registerTypes([
+ *                new \KsfCommon\ContactType\ContactType(
+ *                    'my_type', 'My Label', 'ksf_FA_<Module>', 'Description'
+ *                ),
+ *            ]);
+ *            return true;
+ *        }
+ *        function deactivate_extension($company, $check_only=true) {
+ *            \KsfCommon\ContactType\ContactTypeRegistry::unregisterModule('ksf_FA_<Module>');
+ *            return true;
+ *        }
+ * 
  * @package KsfFA_<Module>
  * @version 2.4.3
  */
