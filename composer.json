@@ -4,7 +4,7 @@
     "type": "library",
     "license": "proprietary",
     "require": {
-        "php": ">=7.4",
+        "php": ">=7.3",
         "ksfraser/exceptions": "^1.3"
     },
     "autoload": {
