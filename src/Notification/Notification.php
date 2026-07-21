@@ -113,14 +113,27 @@ final class Notification
     public function getStatus(): string { return $this->status; }
     public function setStatus(string $status): self { $this->status = $status; return $this; }
     public function getScheduledAt(): ?DateTimeInterface { return $this->scheduledAt; }
-    public function setScheduledAt(?DateTimeInterface $scheduledAt): self { $this->scheduledAt = $scheduledAt ? DateTime::createFromInterface($scheduledAt) : null; return $this; }
+    public function setScheduledAt(?DateTimeInterface $scheduledAt): self { $this->scheduledAt = self::dateTimeFrom($scheduledAt); return $this; }
     public function getDispatchedAt(): ?DateTimeInterface { return $this->dispatchedAt; }
-    public function setDispatchedAt(?DateTimeInterface $dispatchedAt): self { $this->dispatchedAt = $dispatchedAt ? DateTime::createFromInterface($dispatchedAt) : null; return $this; }
+    public function setDispatchedAt(?DateTimeInterface $dispatchedAt): self { $this->dispatchedAt = self::dateTimeFrom($dispatchedAt); return $this; }
     public function getAcknowledgedAt(): ?DateTimeInterface { return $this->acknowledgedAt; }
-    public function setAcknowledgedAt(?DateTimeInterface $acknowledgedAt): self { $this->acknowledgedAt = $acknowledgedAt ? DateTime::createFromInterface($acknowledgedAt) : null; return $this; }
+    public function setAcknowledgedAt(?DateTimeInterface $acknowledgedAt): self { $this->acknowledgedAt = self::dateTimeFrom($acknowledgedAt); return $this; }
     public function getAckToken(): ?string { return $this->ackToken; }
     public function setAckToken(?string $ackToken): self { $this->ackToken = $ackToken; return $this; }
     public function getCreatedAt(): DateTimeInterface { return $this->createdAt; }
     public function getUpdatedAt(): DateTimeInterface { return $this->updatedAt; }
-    public function setUpdatedAt(DateTimeInterface $updatedAt): self { $this->updatedAt = DateTime::createFromInterface($updatedAt); return $this; }
+    public function setUpdatedAt(DateTimeInterface $updatedAt): self { $this->updatedAt = self::dateTimeFrom($updatedAt); return $this; }
+
+    private static function dateTimeFrom(?DateTimeInterface $dt): ?DateTime
+    {
+        if ($dt === null) {
+            return null;
+        }
+        if ($dt instanceof DateTime) {
+            return clone $dt;
+        }
+        $result = new DateTime('@' . $dt->getTimestamp());
+        $result->setTimezone($dt->getTimezone());
+        return $result;
+    }
 }

@@ -100,7 +100,7 @@ class PluginRegistry
     {
         return array_filter(
             $this->plugins,
-            fn(PluginInterface $p) => $p->isActive()
+            function (PluginInterface $p) { return $p->isActive(); }
         );
     }
 
