@@ -21,7 +21,7 @@ namespace KsfCommon\Plugin;
 class PluginRegistry
 {
     /** @var PluginInterface[] keyed by plugin name */
-    private array $plugins = [];
+    private $plugins = [];
 
     /**
      * Scan a directory for PHP files and register any PluginInterface

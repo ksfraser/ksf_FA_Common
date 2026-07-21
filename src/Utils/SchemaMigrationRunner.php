@@ -17,9 +17,9 @@ class SchemaMigrationRunner
 {
     private const TRACKING_TABLE = 'ksf_schema_migrations';
 
-    private string $moduleDir;
-    private string $moduleName = 'unknown';
-    private string $prefix;
+    private $moduleDir;
+    private $moduleName = 'unknown';
+    private $prefix;
 
     public function __construct(string $moduleDir)
     {

@@ -12,7 +12,7 @@ namespace KsfCommon\Utils;
 
 class SchemaInstaller
 {
-    private array $tables = [];
+    private $tables = [];
     
     public function addTable(string $tableName, string $createSql): self
     {

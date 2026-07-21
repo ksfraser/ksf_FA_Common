@@ -19,22 +19,22 @@ final class Notification
     public const CHANNEL_SMS = 'sms';
     public const CHANNEL_PUSH = 'push';
 
-    private ?int $id = null;
-    private string $sourceModule;
-    private string $sourceRef;
-    private ?string $recipientUserId = null;
-    private string $notificationType;
-    private string $channel;
-    private string $title;
-    private ?string $body = null;
-    private array $payload = [];
-    private string $status;
-    private ?DateTime $scheduledAt = null;
-    private ?DateTime $dispatchedAt = null;
-    private ?DateTime $acknowledgedAt = null;
-    private ?string $ackToken = null;
-    private DateTime $createdAt;
-    private DateTime $updatedAt;
+    private $id = null;
+    private $sourceModule;
+    private $sourceRef;
+    private $recipientUserId = null;
+    private $notificationType;
+    private $channel;
+    private $title;
+    private $body = null;
+    private $payload = [];
+    private $status;
+    private $scheduledAt = null;
+    private $dispatchedAt = null;
+    private $acknowledgedAt = null;
+    private $ackToken = null;
+    private $createdAt;
+    private $updatedAt;
 
     public function __construct(string $sourceModule, string $sourceRef, string $title)
     {

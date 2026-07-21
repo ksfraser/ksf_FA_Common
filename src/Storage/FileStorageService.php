@@ -22,7 +22,7 @@ class FileStorageService implements FileStorageInterface
         '#^application/x-zip-compressed$#',
     ];
 
-    private string $subDir;
+    private $subDir;
 
     public function __construct(string $subDir = 'general')
     {

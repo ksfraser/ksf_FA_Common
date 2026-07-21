@@ -12,9 +12,9 @@ namespace KsfCommon;
 
 class BaseHooks
 {
-    protected string $moduleName;
-    protected array $securitySections = [];
-    protected array $securityAreas = [];
+    protected $moduleName;
+    protected $securitySections = [];
+    protected $securityAreas = [];
     
     public function __construct()
     {

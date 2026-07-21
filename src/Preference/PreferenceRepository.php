@@ -6,7 +6,7 @@ namespace KsfCommon\Preference;
 
 final class PreferenceRepository
 {
-    private string $tableName;
+    private $tableName;
 
     public function __construct(string $tableName = 'fa_preference_values')
     {

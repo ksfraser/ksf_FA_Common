@@ -27,16 +27,16 @@ namespace KsfCommon\ExtensionRegistry;
 class ExtensionRegistry implements ExtensionRegistryInterface
 {
     /** @var self|null Singleton instance */
-    private static ?self $instance = null;
+    private static $instance = null;
 
     /** @var array<string, array<string, array>> category => key => definition */
-    private array $registrations = [];
+    private $registrations = [];
 
     /** @var bool Whether boot() has been called */
-    private bool $booted = false;
+    private $booted = false;
 
     /** @var string[] Hook names that have been booted */
-    private array $bootedHooks = [];
+    private $bootedHooks = [];
 
     /**
      * Return the singleton instance.

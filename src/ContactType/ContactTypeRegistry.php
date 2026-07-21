@@ -34,7 +34,7 @@ class ContactTypeRegistry
     private const TABLE_NAME = 'ksf_contact_types';
 
     /** @var ContactType[]|null  Per-request static cache */
-    private static ?array $types = null;
+    private static $types = null;
 
     /**
      * Return all registered contact types, keyed by name.

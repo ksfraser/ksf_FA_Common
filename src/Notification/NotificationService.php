@@ -9,7 +9,7 @@ use KsfCommon\Notification\Contract\NotificationStorageInterface;
 
 final class NotificationService
 {
-    private NotificationStorageInterface $repository;
+    private $repository;
 
     public function __construct(?NotificationStorageInterface $repository = null)
     {

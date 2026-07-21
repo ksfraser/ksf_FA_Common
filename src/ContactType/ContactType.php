@@ -21,10 +21,10 @@ namespace KsfCommon\ContactType;
 
 class ContactType
 {
-    private string $name;
-    private string $label;
-    private string $module;
-    private ?string $description;
+    private $name;
+    private $label;
+    private $module;
+    private $description;
 
     /**
      * @param string      $name        Machine name (e.g. 'fa_user', 'employee', 'resource')

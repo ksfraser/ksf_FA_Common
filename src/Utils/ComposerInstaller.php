@@ -12,8 +12,8 @@ namespace KsfCommon\Utils;
 
 class ComposerInstaller
 {
-    private string $moduleDir;
-    private array $errors = [];
+    private $moduleDir;
+    private $errors = [];
     
     public function __construct(string $moduleDir = null)
     {
