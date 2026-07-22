@@ -11,7 +11,7 @@
  * @package KsfCommon\Utils
  */
 
-namespace KsfCommon\Utils;
+namespace ksfraser\FrontAccounting\Common\Utils;
 
 class SchemaMigrationRunner
 {

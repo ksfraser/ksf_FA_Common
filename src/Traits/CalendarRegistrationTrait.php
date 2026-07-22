@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace KsfCommon\Traits;
+namespace ksfraser\FrontAccounting\Common\Traits;
 
-use KsfCommon\ExtensionRegistry\ExtensionRegistry;
+use ksfraser\FrontAccounting\Common\ExtensionRegistry\ExtensionRegistry;
 
 /**
  * Convenience trait for modules that want to register calendar-specific
@@ -18,7 +18,7 @@ use KsfCommon\ExtensionRegistry\ExtensionRegistry;
  * Usage in a module's hooks class:
  *
  *   class hooks_ksf_FA_Marketing extends hooks {
- *       use \KsfCommon\Traits\CalendarRegistrationTrait;
+ *       use \ksfraser\FrontAccounting\Common\Traits\CalendarRegistrationTrait;
  *
  *       function activate_extension($company, $check_only = true) {
  *           $this->registerCalendarSourceType('campaign', 'Campaign', [

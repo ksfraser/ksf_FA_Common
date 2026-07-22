@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace KsfCommon\Storage;
+namespace ksfraser\FrontAccounting\Common\Storage;
 
-use KsfCommon\Storage\Contract\FileStorageInterface;
+use ksfraser\FrontAccounting\Common\Storage\Contract\FileStorageInterface;
 use Ksfraser\Exceptions\Utility\FileNotFoundException;
 
 class FileStorageService implements FileStorageInterface

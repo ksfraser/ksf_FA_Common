@@ -33,7 +33,7 @@
 
 declare(strict_types=1);
 
-namespace KsfCommon\Menu;
+namespace ksfraser\FrontAccounting\Common\Menu;
 
 /**
  * FA module navigation menu — item list, in-page HTML renderer,

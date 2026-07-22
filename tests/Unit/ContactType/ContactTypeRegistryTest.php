@@ -5,15 +5,15 @@
  * Tests the fallback/default path (no FA db_query available).  The DB-backed
  * path is tested via integration tests against the real database.
  *
- * @package KsfCommon\Tests\Unit\ContactType
+ * @package ksfraser\FrontAccounting\Common\Tests\Unit\ContactType
  */
 
 declare(strict_types=1);
 
-namespace KsfCommon\Tests\Unit\ContactType;
+namespace ksfraser\FrontAccounting\Common\Tests\Unit\ContactType;
 
-use KsfCommon\ContactType\ContactType;
-use KsfCommon\ContactType\ContactTypeRegistry;
+use ksfraser\FrontAccounting\Common\ContactType\ContactType;
+use ksfraser\FrontAccounting\Common\ContactType\ContactTypeRegistry;
 use PHPUnit\Framework\TestCase;
 
 class ContactTypeRegistryTest extends TestCase

@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace KsfCommon\Tests\Unit\Preference;
+namespace ksfraser\FrontAccounting\Common\Tests\Unit\Preference;
 
-use KsfCommon\Preference\PreferenceHookContract;
-use KsfCommon\Preference\PreferenceRepository;
+use ksfraser\FrontAccounting\Common\Preference\PreferenceHookContract;
+use ksfraser\FrontAccounting\Common\Preference\PreferenceRepository;
 use PHPUnit\Framework\TestCase;
 
 final class PreferenceRepositoryTest extends TestCase

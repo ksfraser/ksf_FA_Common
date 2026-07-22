@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace KsfCommon\Notification\Contract;
+namespace ksfraser\FrontAccounting\Common\Notification\Contract;
 
 use DateTimeInterface;
-use KsfCommon\Notification\Notification;
+use ksfraser\FrontAccounting\Common\Notification\Notification;
 
 interface NotificationStorageInterface
 {

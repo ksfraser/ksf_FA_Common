@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace KsfCommon\Preference;
+namespace ksfraser\FrontAccounting\Common\Preference;
 
 final class PreferenceHookContract
 {

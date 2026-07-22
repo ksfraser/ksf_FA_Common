@@ -26,7 +26,7 @@
 
 declare(strict_types=1);
 
-namespace KsfCommon\ContactType;
+namespace ksfraser\FrontAccounting\Common\ContactType;
 
 class ContactTypeRegistry
 {

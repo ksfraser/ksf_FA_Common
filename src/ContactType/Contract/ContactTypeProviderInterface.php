@@ -15,9 +15,9 @@
 
 declare(strict_types=1);
 
-namespace KsfCommon\ContactType\Contract;
+namespace ksfraser\FrontAccounting\Common\ContactType\Contract;
 
-use KsfCommon\ContactType\ContactType;
+use ksfraser\FrontAccounting\Common\ContactType\ContactType;
 
 interface ContactTypeProviderInterface
 {

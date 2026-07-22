@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace KsfCommon\Notification;
+namespace ksfraser\FrontAccounting\Common\Notification;
 
 use DateTime;
 use DateTimeInterface;

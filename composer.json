@@ -9,10 +9,12 @@
     },
     "autoload": {
         "psr-4": {
+            "ksfraser\\FrontAccounting\\Common\\": "src/",
             "KsfCommon\\": "src/"
         },
         "files": [
-            "src/logging_functions.php"
+            "src/logging_functions.php",
+            "src/compat.php"
         ]
     },
     "config": {
@@ -28,7 +30,9 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "KsfCommon\\Test\\": "tests/"
+            "ksfraser\\FrontAccounting\\Common\\Tests\\": "tests/",
+            "KsfCommon\\Test\\": "tests/",
+            "KsfCommon\\Tests\\": "tests/"
         }
     }
 }

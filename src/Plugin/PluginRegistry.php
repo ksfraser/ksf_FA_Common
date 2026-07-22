@@ -1,6 +1,6 @@
 <?php
 
-namespace KsfCommon\Plugin;
+namespace ksfraser\FrontAccounting\Common\Plugin;
 
 /**
  * Auto-discovery registry for plugins.

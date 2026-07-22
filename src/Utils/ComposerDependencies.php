@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace KsfCommon\Utils;
+namespace ksfraser\FrontAccounting\Common\Utils;
 
 final class ComposerDependencies
 {

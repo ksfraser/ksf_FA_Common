@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace KsfCommon\ExtensionRegistry;
+namespace ksfraser\FrontAccounting\Common\ExtensionRegistry;
 
 /**
  * Contract for module extension registries.

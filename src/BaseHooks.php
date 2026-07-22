@@ -8,7 +8,7 @@
  * @package KsfCommon
  */
 
-namespace KsfCommon;
+namespace ksfraser\FrontAccounting\Common;
 
 class BaseHooks
 {

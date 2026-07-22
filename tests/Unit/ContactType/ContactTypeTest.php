@@ -2,14 +2,14 @@
 /**
  * ContactType unit tests.
  *
- * @package KsfCommon\Tests\Unit\ContactType
+ * @package ksfraser\FrontAccounting\Common\Tests\Unit\ContactType
  */
 
 declare(strict_types=1);
 
-namespace KsfCommon\Tests\Unit\ContactType;
+namespace ksfraser\FrontAccounting\Common\Tests\Unit\ContactType;
 
-use KsfCommon\ContactType\ContactType;
+use ksfraser\FrontAccounting\Common\ContactType\ContactType;
 use PHPUnit\Framework\TestCase;
 
 class ContactTypeTest extends TestCase

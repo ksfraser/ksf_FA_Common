@@ -29,15 +29,15 @@
  *    - Register types in activate_extension() and clean up in deactivate_extension():
  *        function activate_extension($company, $check_only=true) {
  *            // ... existing setup ...
- *            \KsfCommon\ContactType\ContactTypeRegistry::registerTypes([
- *                new \KsfCommon\ContactType\ContactType(
+ *            \ksfraser\FrontAccounting\Common\ContactType\ContactTypeRegistry::registerTypes([
+ *                new \ksfraser\FrontAccounting\Common\ContactType\ContactType(
  *                    'my_type', 'My Label', 'ksf_FA_<Module>', 'Description'
  *                ),
  *            ]);
  *            return true;
  *        }
  *        function deactivate_extension($company, $check_only=true) {
- *            \KsfCommon\ContactType\ContactTypeRegistry::unregisterModule('ksf_FA_<Module>');
+ *            \ksfraser\FrontAccounting\Common\ContactType\ContactTypeRegistry::unregisterModule('ksf_FA_<Module>');
  *            return true;
  *        }
  * 

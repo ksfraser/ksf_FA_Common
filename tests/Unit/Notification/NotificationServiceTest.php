@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace KsfCommon\Tests\Unit\Notification;
+namespace ksfraser\FrontAccounting\Common\Tests\Unit\Notification;
 
-use KsfCommon\Notification\Contract\NotificationStorageInterface;
-use KsfCommon\Notification\Notification;
-use KsfCommon\Notification\NotificationService;
+use ksfraser\FrontAccounting\Common\Notification\Contract\NotificationStorageInterface;
+use ksfraser\FrontAccounting\Common\Notification\Notification;
+use ksfraser\FrontAccounting\Common\Notification\NotificationService;
 use PHPUnit\Framework\TestCase;
 
 final class NotificationServiceTest extends TestCase

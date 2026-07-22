@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace KsfCommon\Tests\Unit\Traits;
+namespace ksfraser\FrontAccounting\Common\Tests\Unit\Traits;
 
-use KsfCommon\ExtensionRegistry\ExtensionRegistry;
-use KsfCommon\Traits\CalendarRegistrationTrait;
+use ksfraser\FrontAccounting\Common\ExtensionRegistry\ExtensionRegistry;
+use ksfraser\FrontAccounting\Common\Traits\CalendarRegistrationTrait;
 use PHPUnit\Framework\TestCase;
 
 if (!defined('MENU_MAIN'))  { define('MENU_MAIN',  1); }

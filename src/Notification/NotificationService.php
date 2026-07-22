@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace KsfCommon\Notification;
+namespace ksfraser\FrontAccounting\Common\Notification;
 
 use DateTimeImmutable;
-use KsfCommon\Notification\Contract\NotificationStorageInterface;
+use ksfraser\FrontAccounting\Common\Notification\Contract\NotificationStorageInterface;
 
 final class NotificationService
 {

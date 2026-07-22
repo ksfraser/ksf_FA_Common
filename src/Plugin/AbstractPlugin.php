@@ -1,6 +1,6 @@
 <?php
 
-namespace KsfCommon\Plugin;
+namespace ksfraser\FrontAccounting\Common\Plugin;
 
 /**
  * Base class for plugins with sensible defaults.

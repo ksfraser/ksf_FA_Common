@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace KsfCommon\Tests\Unit\Menu;
+namespace ksfraser\FrontAccounting\Common\Tests\Unit\Menu;
 
-use KsfCommon\Menu\FAModuleMenu;
+use ksfraser\FrontAccounting\Common\Menu\FAModuleMenu;
 use PHPUnit\Framework\TestCase;
 
 if (!defined('MENU_MAIN'))  { define('MENU_MAIN',  1); }

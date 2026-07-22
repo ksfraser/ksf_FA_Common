@@ -1,10 +1,10 @@
 <?php
 
-namespace KsfCommon\Test\Plugin;
+namespace ksfraser\FrontAccounting\Common\Tests\Unit\Plugin;
 
-use KsfCommon\Plugin\AbstractPlugin;
-use KsfCommon\Plugin\PluginInterface;
-use KsfCommon\Plugin\PluginRegistry;
+use ksfraser\FrontAccounting\Common\Plugin\AbstractPlugin;
+use ksfraser\FrontAccounting\Common\Plugin\PluginInterface;
+use ksfraser\FrontAccounting\Common\Plugin\PluginRegistry;
 use PHPUnit\Framework\TestCase;
 
 class SamplePlugin extends AbstractPlugin
@@ -101,8 +101,8 @@ class PluginRegistryTest extends TestCase
         mkdir($tmpDir);
 
         $code = '<?php
-namespace KsfCommon\Test\Plugin\Discovery;
-use KsfCommon\Plugin\AbstractPlugin;
+namespace ksfraser\FrontAccounting\Common\Tests\Unit\Plugin\Discovery;
+use ksfraser\FrontAccounting\Common\Plugin\AbstractPlugin;
 class DiscoveredPlugin extends AbstractPlugin {
     public function getName(): string { return "discovered"; }
 }';
@@ -131,8 +131,8 @@ class DiscoveredPlugin extends AbstractPlugin {
         mkdir($tmpDir);
 
         $code = '<?php
-namespace KsfCommon\Test\Plugin\Discovery2;
-use KsfCommon\Plugin\AbstractPlugin;
+namespace ksfraser\FrontAccounting\Common\Tests\Unit\Plugin\Discovery2;
+use ksfraser\FrontAccounting\Common\Plugin\AbstractPlugin;
 abstract class AbstractOnly extends AbstractPlugin {
     public function getName(): string { return "abstract"; }
 }';
@@ -153,8 +153,8 @@ abstract class AbstractOnly extends AbstractPlugin {
         mkdir($tmpDir);
 
         $code = '<?php
-namespace KsfCommon\Test\Plugin\Discovery3;
-interface FakeInterface extends \KsfCommon\Plugin\PluginInterface {}
+namespace ksfraser\FrontAccounting\Common\Tests\Unit\Plugin\Discovery3;
+interface FakeInterface extends \ksfraser\FrontAccounting\Common\Plugin\PluginInterface {}
 ';
         file_put_contents($tmpDir . '/FakeInterface.php', $code);
 

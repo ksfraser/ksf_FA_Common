@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace KsfCommon\Tests\Unit\ExtensionRegistry;
+namespace ksfraser\FrontAccounting\Common\Tests\Unit\ExtensionRegistry;
 
-use KsfCommon\ExtensionRegistry\ExtensionRegistry;
+use ksfraser\FrontAccounting\Common\ExtensionRegistry\ExtensionRegistry;
 use PHPUnit\Framework\TestCase;
 
 class ExtensionRegistryTest extends TestCase

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace KsfCommon\Queue;
+namespace ksfraser\FrontAccounting\Common\Queue;
 
 /**
  * Job Queue — background task processing for the ksf_FA ecosystem.

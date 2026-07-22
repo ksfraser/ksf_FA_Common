@@ -8,7 +8,7 @@
  * @package KsfCommon
  */
 
-namespace KsfCommon\Utils;
+namespace ksfraser\FrontAccounting\Common\Utils;
 
 class ComposerInstaller
 {
