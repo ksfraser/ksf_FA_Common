@@ -4,13 +4,17 @@ declare(strict_types=1);
 
 namespace ksfraser\FrontAccounting\Common\Tests\Unit\Traits;
 
+use ksfraser\GPG\Hook\GPGHookResponse;
+use ksfraser\GPG\Hook\GPGTarget;
+use ksfraser\GPG\Hook\GPGTargetResult;
 use PHPUnit\Framework\TestCase;
 
 /**
  * Unit tests for GPGEncryptionTrait.
  *
  * Tests the fallback behaviour (GPG not installed) and the
- * passthrough behaviour (GPG installed, success/failure).
+ * passthrough behaviour (GPG installed, success/failure) using
+ * GPGHookResponse DTOs.
  *
  * @package KsfCommon\Tests\Unit\Traits
  * @since   1.1.0
@@ -23,14 +27,14 @@ class GPGEncryptionTraitTest extends TestCase
     /** @var array<int, array{hook: string, data: array}> Captured hook calls */
     private $hookCalls = [];
 
-    /** @var array<string, array{success: bool, output_path: string|null, error: string|null}> Hook responses keyed by hook name */
-    private $hookResponses = [];
+    /** @var GPGHookResponse|null Controlled response to return */
+    private $hookResponse = null;
 
     protected function setUp(): void
     {
         parent::setUp();
         $this->hookCalls = [];
-        $this->hookResponses = [];
+        $this->hookResponse = null;
         $this->stub = new GPGEncryptionTraitStub($this);
     }
 
@@ -38,38 +42,57 @@ class GPGEncryptionTraitTest extends TestCase
     {
         $this->stub = null;
         $this->hookCalls = [];
-        $this->hookResponses = [];
+        $this->hookResponse = null;
         parent::tearDown();
     }
 
     /**
      * Called by the stub when gpgInvokeHook is invoked.
-     * Records the call and returns the controlled response.
-     *
-     * @param string $hookName
-     * @param array  $data
-     * @return array|null
      */
-    public function handleHookCall(string $hookName, array &$data): ?array
+    public function handleHookCall(string $hookName, array &$data): ?GPGHookResponse
     {
         $this->hookCalls[] = ['hook' => $hookName, 'data' => $data];
+        return $this->hookResponse;
+    }
 
-        if (isset($this->hookResponses[$hookName])) {
-            return $this->hookResponses[$hookName];
+    // ── Helpers ─────────────────────────────────────────────────────
+
+    private static function makeSuccessResponse(string $original, ?string $encrypted = null, ?string $signed = null): GPGHookResponse
+    {
+        $target = new GPGTarget('customer', 0, 'test@example.com');
+        $result = new GPGTargetResult($target, $original);
+        $result->setSuccess(true);
+        if ($encrypted !== null) {
+            $result->setEncryptedPath($encrypted);
+        }
+        if ($signed !== null) {
+            $result->setSignedPath($signed);
         }
 
-        return null;
+        $response = new GPGHookResponse();
+        $response->setSuccess(true);
+        $response->addResult($result);
+        return $response;
+    }
+
+    private static function makeFailureResponse(string $original): GPGHookResponse
+    {
+        $target = new GPGTarget('customer', 0, 'test@example.com');
+        $result = new GPGTargetResult($target, $original);
+        $result->setSuccess(false);
+        $result->setError('GPG not configured');
+
+        $response = new GPGHookResponse();
+        $response->setSuccess(false);
+        $response->addResult($result);
+        return $response;
     }
 
     // ── gpgEncryptFile ──────────────────────────────────────────────
 
     public function testEncryptFileReturnsEncryptedPathOnSuccess(): void
     {
-        $this->hookResponses['gpg_encrypt'] = [
-            'success'     => true,
-            'output_path' => '/tmp/invoice.pdf.gpg',
-            'error'       => null,
-        ];
+        $this->hookResponse = self::makeSuccessResponse('/tmp/invoice.pdf', '/tmp/invoice.pdf.gpg');
 
         $result = $this->stub->doEncryptFile('/tmp/invoice.pdf', 'client@example.com');
 
@@ -82,11 +105,7 @@ class GPGEncryptionTraitTest extends TestCase
 
     public function testEncryptFileReturnsOriginalOnFailure(): void
     {
-        $this->hookResponses['gpg_encrypt'] = [
-            'success'     => false,
-            'output_path' => null,
-            'error'       => 'GPG not configured',
-        ];
+        $this->hookResponse = self::makeFailureResponse('/tmp/invoice.pdf');
 
         $result = $this->stub->doEncryptFile('/tmp/invoice.pdf', 'client@example.com');
 
@@ -95,7 +114,6 @@ class GPGEncryptionTraitTest extends TestCase
 
     public function testEncryptFileReturnsOriginalWhenNoHandler(): void
     {
-        // No hook response set → simulates GPG module not installed
         $result = $this->stub->doEncryptFile('/tmp/invoice.pdf', 'client@example.com');
 
         $this->assertSame('/tmp/invoice.pdf', $result);
@@ -103,11 +121,7 @@ class GPGEncryptionTraitTest extends TestCase
 
     public function testEncryptFilePassesContactTypeAndId(): void
     {
-        $this->hookResponses['gpg_encrypt'] = [
-            'success'     => true,
-            'output_path' => '/tmp/file.gpg',
-            'error'       => null,
-        ];
+        $this->hookResponse = self::makeSuccessResponse('/tmp/file.pdf', '/tmp/file.gpg');
 
         $this->stub->doEncryptFile('/tmp/file.pdf', 'a@b.com', 'supplier', 42);
 
@@ -117,11 +131,7 @@ class GPGEncryptionTraitTest extends TestCase
 
     public function testEncryptFilePassesPasswordWhenProvided(): void
     {
-        $this->hookResponses['gpg_encrypt'] = [
-            'success'     => true,
-            'output_path' => '/tmp/file.pgp',
-            'error'       => null,
-        ];
+        $this->hookResponse = self::makeSuccessResponse('/tmp/file.pdf', '/tmp/file.pgp');
 
         $this->stub->doEncryptFile('/tmp/file.pdf', '', 'customer', 0, 'secret123');
 
@@ -130,26 +140,39 @@ class GPGEncryptionTraitTest extends TestCase
 
     public function testEncryptFileOmitsPasswordWhenNull(): void
     {
-        $this->hookResponses['gpg_encrypt'] = [
-            'success'     => true,
-            'output_path' => '/tmp/file.gpg',
-            'error'       => null,
-        ];
+        $this->hookResponse = self::makeSuccessResponse('/tmp/file.pdf', '/tmp/file.gpg');
 
         $this->stub->doEncryptFile('/tmp/file.pdf', 'a@b.com');
 
         $this->assertArrayNotHasKey('password', $this->hookCalls[0]['data']);
     }
 
+    // ── gpgEncryptFileRaw ───────────────────────────────────────────
+
+    public function testEncryptFileRawReturnsDtoOnSuccess(): void
+    {
+        $this->hookResponse = self::makeSuccessResponse('/tmp/invoice.pdf', '/tmp/invoice.pdf.gpg');
+
+        $response = $this->stub->doEncryptFileRaw('/tmp/invoice.pdf', 'client@example.com');
+
+        $this->assertInstanceOf(GPGHookResponse::class, $response);
+        $this->assertTrue($response->isSuccess());
+        $this->assertSame(['/tmp/invoice.pdf.gpg'], $response->getEncryptedPaths());
+        $this->assertSame(['/tmp/invoice.pdf'], $response->getOriginalPaths());
+    }
+
+    public function testEncryptFileRawReturnsNullWhenNoHandler(): void
+    {
+        $response = $this->stub->doEncryptFileRaw('/tmp/invoice.pdf', 'client@example.com');
+
+        $this->assertNull($response);
+    }
+
     // ── gpgSignFile ─────────────────────────────────────────────────
 
     public function testSignFileReturnsSignedPathOnSuccess(): void
     {
-        $this->hookResponses['gpg_sign'] = [
-            'success'     => true,
-            'output_path' => '/tmp/doc.pdf.sig',
-            'error'       => null,
-        ];
+        $this->hookResponse = self::makeSuccessResponse('/tmp/doc.pdf', null, '/tmp/doc.pdf.sig');
 
         $result = $this->stub->doSignFile('/tmp/doc.pdf', 'sender@co.com');
 
@@ -159,11 +182,7 @@ class GPGEncryptionTraitTest extends TestCase
 
     public function testSignFileReturnsOriginalOnFailure(): void
     {
-        $this->hookResponses['gpg_sign'] = [
-            'success'     => false,
-            'output_path' => null,
-            'error'       => 'key not found',
-        ];
+        $this->hookResponse = self::makeFailureResponse('/tmp/doc.pdf');
 
         $result = $this->stub->doSignFile('/tmp/doc.pdf', 'sender@co.com');
 
@@ -179,11 +198,7 @@ class GPGEncryptionTraitTest extends TestCase
 
     public function testSignFileIncludesSenderContactInfo(): void
     {
-        $this->hookResponses['gpg_sign'] = [
-            'success'     => true,
-            'output_path' => '/tmp/doc.pdf.sig',
-            'error'       => null,
-        ];
+        $this->hookResponse = self::makeSuccessResponse('/tmp/doc.pdf', null, '/tmp/doc.pdf.sig');
 
         $this->stub->doSignFile('/tmp/doc.pdf', 's@co.com', 'employee', 7);
 
@@ -193,11 +208,7 @@ class GPGEncryptionTraitTest extends TestCase
 
     public function testSignFileOmitsSenderWhenDefaults(): void
     {
-        $this->hookResponses['gpg_sign'] = [
-            'success'     => true,
-            'output_path' => '/tmp/doc.pdf.sig',
-            'error'       => null,
-        ];
+        $this->hookResponse = self::makeSuccessResponse('/tmp/doc.pdf', null, '/tmp/doc.pdf.sig');
 
         $this->stub->doSignFile('/tmp/doc.pdf', 's@co.com');
 
@@ -205,15 +216,24 @@ class GPGEncryptionTraitTest extends TestCase
         $this->assertArrayNotHasKey('sender_contact_id', $this->hookCalls[0]['data']);
     }
 
+    // ── gpgSignFileRaw ──────────────────────────────────────────────
+
+    public function testSignFileRawReturnsDtoOnSuccess(): void
+    {
+        $this->hookResponse = self::makeSuccessResponse('/tmp/doc.pdf', null, '/tmp/doc.pdf.sig');
+
+        $response = $this->stub->doSignFileRaw('/tmp/doc.pdf', 'sender@co.com');
+
+        $this->assertInstanceOf(GPGHookResponse::class, $response);
+        $this->assertTrue($response->isSuccess());
+        $this->assertSame(['/tmp/doc.pdf.sig'], $response->getSignedPaths());
+    }
+
     // ── gpgSignAndEncryptFile ───────────────────────────────────────
 
     public function testSignAndEncryptReturnsPathOnSuccess(): void
     {
-        $this->hookResponses['gpg_sign_encrypt'] = [
-            'success'     => true,
-            'output_path' => '/tmp/doc.pdf.gpg',
-            'error'       => null,
-        ];
+        $this->hookResponse = self::makeSuccessResponse('/tmp/doc.pdf', '/tmp/doc.pdf.gpg');
 
         $result = $this->stub->doSignAndEncryptFile('/tmp/doc.pdf', 'r@co.com');
 
@@ -223,11 +243,7 @@ class GPGEncryptionTraitTest extends TestCase
 
     public function testSignAndEncryptReturnsOriginalOnFailure(): void
     {
-        $this->hookResponses['gpg_sign_encrypt'] = [
-            'success'     => false,
-            'output_path' => null,
-            'error'       => 'error',
-        ];
+        $this->hookResponse = self::makeFailureResponse('/tmp/doc.pdf');
 
         $result = $this->stub->doSignAndEncryptFile('/tmp/doc.pdf', 'r@co.com');
 
@@ -243,11 +259,7 @@ class GPGEncryptionTraitTest extends TestCase
 
     public function testSignAndEncryptPassesAllParameters(): void
     {
-        $this->hookResponses['gpg_sign_encrypt'] = [
-            'success'     => true,
-            'output_path' => '/tmp/doc.gpg',
-            'error'       => null,
-        ];
+        $this->hookResponse = self::makeSuccessResponse('/tmp/doc.pdf', '/tmp/doc.gpg');
 
         $this->stub->doSignAndEncryptFile(
             '/tmp/doc.pdf',
@@ -266,49 +278,62 @@ class GPGEncryptionTraitTest extends TestCase
         $this->assertSame(9, $data['sender_contact_id']);
     }
 
+    // ── gpgSignAndEncryptFileRaw ────────────────────────────────────
+
+    public function testSignAndEncryptRawReturnsDtoOnSuccess(): void
+    {
+        $target = new GPGTarget('customer', 0, 'r@co.com');
+        $result = new GPGTargetResult($target, '/tmp/doc.pdf');
+        $result->setSuccess(true);
+        $result->setEncryptedPath('/tmp/doc.pdf.gpg');
+        $result->setSignedPath('/tmp/doc.pdf.sig');
+
+        $response = new GPGHookResponse();
+        $response->setSuccess(true);
+        $response->addResult($result);
+        $this->hookResponse = $response;
+
+        $raw = $this->stub->doSignAndEncryptFileRaw('/tmp/doc.pdf', 'r@co.com');
+
+        $this->assertInstanceOf(GPGHookResponse::class, $raw);
+        $this->assertSame(['/tmp/doc.pdf.gpg'], $raw->getEncryptedPaths());
+        $this->assertSame(['/tmp/doc.pdf.sig'], $raw->getSignedPaths());
+    }
+
     // ── gpgTrackFileUpload ──────────────────────────────────────────
 
-    public function testTrackFileUploadReturnsResultOnSuccess(): void
+    public function testTrackFileUploadReturnsTrueOnSuccess(): void
     {
-        $this->hookResponses['gpg_file_upload'] = [
-            'success'     => true,
-            'output_path' => null,
-            'error'       => null,
-        ];
+        $response = new GPGHookResponse();
+        $response->setSuccess(true);
+        $this->hookResponse = $response;
 
         $result = $this->stub->doTrackFileUpload('/tmp/upload.pdf', 'customer', 3);
 
-        $this->assertNotNull($result);
-        $this->assertTrue($result['success']);
+        $this->assertTrue($result);
         $this->assertSame('gpg_file_upload', $this->hookCalls[0]['hook']);
     }
 
-    public function testTrackFileUploadReturnsNullOnFailure(): void
+    public function testTrackFileUploadReturnsFalseOnFailure(): void
     {
-        $this->hookResponses['gpg_file_upload'] = [
-            'success'     => false,
-            'output_path' => null,
-            'error'       => 'fail',
-        ];
+        $this->hookResponse = null;
 
         $result = $this->stub->doTrackFileUpload('/tmp/upload.pdf');
 
-        $this->assertNull($result);
+        $this->assertFalse($result);
     }
 
-    public function testTrackFileUploadReturnsNullWhenNoHandler(): void
+    public function testTrackFileUploadReturnsFalseWhenNoHandler(): void
     {
         $result = $this->stub->doTrackFileUpload('/tmp/upload.pdf');
 
-        $this->assertNull($result);
+        $this->assertFalse($result);
     }
 
     // ── gpgIsAvailable ──────────────────────────────────────────────
 
     public function testGpgIsAvailableReturnsFalseWhenNoFunction(): void
     {
-        // In test context, hook_invoke_all is not defined as a real FA function
-        // The trait checks function_exists() first
         if (function_exists('hook_invoke_all')) {
             $this->markTestSkipped('hook_invoke_all is defined in this environment');
         }
@@ -320,40 +345,57 @@ class GPGEncryptionTraitTest extends TestCase
 
     // ── Edge cases ──────────────────────────────────────────────────
 
-    public function testEncryptFileHandlesEmptyOutputPath(): void
+    public function testEncryptFileHandlesSuccessWithNoOutputPath(): void
     {
-        $this->hookResponses['gpg_encrypt'] = [
-            'success'     => true,
-            'output_path' => '',
-            'error'       => null,
-        ];
+        $target = new GPGTarget('customer', 0, 'a@b.com');
+        $result = new GPGTargetResult($target, '/tmp/file.pdf');
+        $result->setSuccess(true);
 
-        $result = $this->stub->doEncryptFile('/tmp/file.pdf', 'a@b.com');
+        $response = new GPGHookResponse();
+        $response->setSuccess(true);
+        $response->addResult($result);
+        $this->hookResponse = $response;
 
-        $this->assertSame('/tmp/file.pdf', $result);
+        $path = $this->stub->doEncryptFile('/tmp/file.pdf', 'a@b.com');
+
+        $this->assertSame('/tmp/file.pdf', $path);
     }
 
-    public function testEncryptFileHandlesNonArrayResult(): void
+    public function testEncryptFileHandlesNonResponseResult(): void
     {
-        // Simulate hook returning a non-array (shouldn't happen, but defensive)
-        $result = $this->stub->doEncryptFile('/tmp/file.pdf', 'a@b.com');
+        $path = $this->stub->doEncryptFile('/tmp/file.pdf', 'a@b.com');
 
-        $this->assertSame('/tmp/file.pdf', $result);
+        $this->assertSame('/tmp/file.pdf', $path);
     }
 
     public function testMultipleCallsTrackCorrectly(): void
     {
-        $this->hookResponses['gpg_encrypt'] = [
-            'success'     => true,
-            'output_path' => '/tmp/a.gpg',
-            'error'       => null,
-        ];
+        $this->hookResponse = self::makeSuccessResponse('/tmp/a.pdf', '/tmp/a.gpg');
 
         $this->stub->doEncryptFile('/tmp/a.pdf', 'a@b.com');
+        $this->hookResponse = self::makeSuccessResponse('/tmp/b.pdf', null, '/tmp/b.sig');
         $this->stub->doSignFile('/tmp/b.pdf', 'c@d.com');
 
         $this->assertCount(2, $this->hookCalls);
         $this->assertSame('gpg_encrypt', $this->hookCalls[0]['hook']);
         $this->assertSame('gpg_sign', $this->hookCalls[1]['hook']);
+    }
+
+    public function testEncryptFilePrefersEncryptedOverOriginal(): void
+    {
+        $this->hookResponse = self::makeSuccessResponse('/tmp/file.pdf', '/tmp/file.gpg');
+
+        $path = $this->stub->doEncryptFile('/tmp/file.pdf', 'a@b.com');
+
+        $this->assertSame('/tmp/file.gpg', $path);
+    }
+
+    public function testSignFilePrefersSignedOverOriginal(): void
+    {
+        $this->hookResponse = self::makeSuccessResponse('/tmp/file.pdf', null, '/tmp/file.sig');
+
+        $path = $this->stub->doSignFile('/tmp/file.pdf', 'a@b.com');
+
+        $this->assertSame('/tmp/file.sig', $path);
     }
 }
