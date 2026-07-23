@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "c9378b97f83e1ff55c66d75232505e0a",
+    "content-hash": "052620953a67983bf64136693571ce63",
     "packages": [
         {
             "name": "ksfraser/exceptions",
@@ -48,6 +48,189 @@
                 "source": "https://github.com/ksfraser/Exceptions/tree/v1.3.0"
             },
             "time": "2026-05-09T22:11:29+00:00"
+        },
+        {
+            "name": "ksfraser/ksf_gpg",
+            "version": "dev-master",
+            "dist": {
+                "type": "path",
+                "url": "../ksf_GPG",
+                "reference": "1c40222af7887d498aee189994b65c930de23047"
+            },
+            "require": {
+                "pear/crypt_gpg": "^1.6",
+                "php": ">=7.3"
+            },
+            "require-dev": {
+                "phpunit/phpunit": "^9.0||^10.0"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "ksfraser\\GPG\\GPGServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "ksfraser\\GPG\\": "src/"
+                }
+            },
+            "autoload-dev": {
+                "psr-4": {
+                    "ksfraser\\GPG\\Tests\\": "tests/"
+                }
+            },
+            "license": [
+                "proprietary"
+            ],
+            "authors": [
+                {
+                    "name": "KSF Development Team",
+                    "email": "admin@ksfraser.com"
+                }
+            ],
+            "description": "GPG business logic library providing key management, signing, encryption, and keyserver operations",
+            "keywords": [
+                "encryption",
+                "frontaccounting",
+                "gpg",
+                "keyserver",
+                "signing"
+            ],
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
+            "name": "pear/crypt_gpg",
+            "version": "v1.8.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/pear/Crypt_GPG.git",
+                "reference": "236aba44a45ce73d838377fe095169af4f4f0858"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/pear/Crypt_GPG/zipball/236aba44a45ce73d838377fe095169af4f4f0858",
+                "reference": "236aba44a45ce73d838377fe095169af4f4f0858",
+                "shasum": ""
+            },
+            "require": {
+                "ext-mbstring": "*",
+                "pear/pear_exception": "*",
+                "php": ">=5.6"
+            },
+            "require-dev": {
+                "phpstan/phpstan": "^1.2",
+                "phpunit/phpunit": "^9"
+            },
+            "suggest": {
+                "ext-posix": "May require the posix PHP extension"
+            },
+            "bin": [
+                "scripts/crypt-gpg-pinentry"
+            ],
+            "type": "library",
+            "autoload": {
+                "classmap": [
+                    "Crypt/"
+                ]
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "include-path": [
+                "./"
+            ],
+            "license": [
+                "LGPL-2.1"
+            ],
+            "authors": [
+                {
+                    "name": "Michael Gauthier",
+                    "email": "mike@silverorange.com"
+                },
+                {
+                    "name": "Nathan Fredrickson",
+                    "email": "nathan@silverorange.com"
+                },
+                {
+                    "name": "Aleksander Machniak",
+                    "email": "alec@alec.pl"
+                }
+            ],
+            "description": "Provides an object oriented interface to the GNU Privacy Guard (GnuPG). It requires the GnuPG executable to be on the system.",
+            "homepage": "https://github.com/pear/Crypt_GPG",
+            "keywords": [
+                "PGP",
+                "encryption",
+                "gnupg",
+                "gpg"
+            ],
+            "support": {
+                "issues": "https://pear.php.net/bugs/search.php?cmd=display&package_name[]=Crypt_GPG",
+                "source": "https://github.com/pear/Crypt_GPG"
+            },
+            "time": "2026-05-21T08:48:51+00:00"
+        },
+        {
+            "name": "pear/pear_exception",
+            "version": "v1.0.2",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/pear/PEAR_Exception.git",
+                "reference": "b14fbe2ddb0b9f94f5b24cf08783d599f776fff0"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/pear/PEAR_Exception/zipball/b14fbe2ddb0b9f94f5b24cf08783d599f776fff0",
+                "reference": "b14fbe2ddb0b9f94f5b24cf08783d599f776fff0",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=5.2.0"
+            },
+            "require-dev": {
+                "phpunit/phpunit": "<9"
+            },
+            "type": "class",
+            "extra": {
+                "branch-alias": {
+                    "dev-master": "1.0.x-dev"
+                }
+            },
+            "autoload": {
+                "classmap": [
+                    "PEAR/"
+                ]
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "include-path": [
+                "."
+            ],
+            "license": [
+                "BSD-2-Clause"
+            ],
+            "authors": [
+                {
+                    "name": "Helgi Thormar",
+                    "email": "dufuz@php.net"
+                },
+                {
+                    "name": "Greg Beaver",
+                    "email": "cellog@php.net"
+                }
+            ],
+            "description": "The PEAR Exception base class.",
+            "homepage": "https://github.com/pear/PEAR_Exception",
+            "keywords": [
+                "exception"
+            ],
+            "support": {
+                "issues": "http://pear.php.net/bugs/search.php?cmd=display&package_name[]=PEAR_Exception",
+                "source": "https://github.com/pear/PEAR_Exception"
+            },
+            "time": "2021-03-21T15:43:46+00:00"
         }
     ],
     "packages-dev": [
@@ -1706,7 +1889,9 @@
     ],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": [],
+    "stability-flags": {
+        "ksfraser/ksf_gpg": 20
+    },
     "prefer-stable": false,
     "prefer-lowest": false,
     "platform": {

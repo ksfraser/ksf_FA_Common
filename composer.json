@@ -5,7 +5,8 @@
     "license": "proprietary",
     "require": {
         "php": ">=7.3",
-        "ksfraser/exceptions": "^1.3"
+        "ksfraser/exceptions": "^1.3",
+        "ksfraser/ksf_gpg": "@dev"
     },
     "autoload": {
         "psr-4": {
@@ -20,6 +21,9 @@
     "config": {
         "sort-packages": true
     },
+    "repositories": [
+        {"type": "path", "url": "../ksf_GPG"}
+    ],
     "extra": {
         "ksf": {
             "module-type": "platform-common"
