@@ -7,11 +7,11 @@
  * composer installer, base hooks).
  *
  * Shared platform-common library providing:
- *   - KsfCommon\ContactType\ContactTypeRegistry           (persisted in DB)
- *   - KsfCommon\ContactType\ContactType                    (value object)
- *   - KsfCommon\ContactType\Contract\ContactTypeProviderInterface
- *   - KsfCommon\Utils\SchemaInstaller
- *   - KsfCommon\Utils\ComposerInstaller
+ *   - ksfraser\FrontAccounting\Common\ContactType\ContactTypeRegistry           (persisted in DB)
+ *   - ksfraser\FrontAccounting\Common\ContactType\ContactType                    (value object)
+ *   - ksfraser\FrontAccounting\Common\ContactType\Contract\ContactTypeProviderInterface
+ *   - ksfraser\FrontAccounting\Common\Utils\SchemaInstaller
+ *   - ksfraser\FrontAccounting\Common\Utils\ComposerInstaller
  *
  * Activation order requirement:
  *   1. ksf_FA_Common     (this module — creates ksf_contact_types table)
@@ -55,8 +55,8 @@ class hooks_ksf_FA_Common extends hooks {
 
     function deactivate_extension($company, $check_only=true) {
         // Clean up default types on deactivation.
-        if (class_exists('\\KsfCommon\\ContactType\\ContactTypeRegistry')) {
-            \KsfCommon\ContactType\ContactTypeRegistry::unregisterModule('ksf_FA_Common');
+        if (class_exists('\\ksfraser\FrontAccounting\Common\\ContactType\\ContactTypeRegistry')) {
+            \ksfraser\FrontAccounting\Common\ContactType\ContactTypeRegistry::unregisterModule('ksf_FA_Common');
         }
         return true;
     }
@@ -104,23 +104,23 @@ class hooks_ksf_FA_Common extends hooks {
      * Idempotent — INSERT IGNORE means re-activation does not duplicate.
      */
     private function register_default_types() {
-        if (!class_exists('\\KsfCommon\\ContactType\\ContactTypeRegistry')) {
+        if (!class_exists('\\ksfraser\FrontAccounting\Common\\ContactType\\ContactTypeRegistry')) {
             return;
         }
-        \KsfCommon\ContactType\ContactTypeRegistry::registerTypes([
-            new \KsfCommon\ContactType\ContactType(
+        \ksfraser\FrontAccounting\Common\ContactType\ContactTypeRegistry::registerTypes([
+            new \ksfraser\FrontAccounting\Common\ContactType\ContactType(
                 'fa_user', 'FA User', 'ksf_FA_Common',
                 'FrontAccounting RBAC user account'
             ),
-            new \KsfCommon\ContactType\ContactType(
+            new \ksfraser\FrontAccounting\Common\ContactType\ContactType(
                 'crm_contact', 'CRM Contact', 'ksf_FA_Common',
                 'Customer or lead managed by the CRM module'
             ),
-            new \KsfCommon\ContactType\ContactType(
+            new \ksfraser\FrontAccounting\Common\ContactType\ContactType(
                 'resource', 'Resource', 'ksf_FA_Common',
                 'Shared resource (room, equipment, vehicle)'
             ),
-            new \KsfCommon\ContactType\ContactType(
+            new \ksfraser\FrontAccounting\Common\ContactType\ContactType(
                 'ad_hoc', 'Ad-hoc', 'ksf_FA_Common',
                 'External invitee without a system record'
             ),
