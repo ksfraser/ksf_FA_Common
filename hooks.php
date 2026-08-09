@@ -69,8 +69,119 @@ class hooks_ksf_FA_Common extends hooks {
     }
 
     // -----------------------------------------------------------------------
+    // Item Event API (inter-module)
+    //
+    // Entry points for hook_invoke('ksf_FA_Common', '<method>', $data) used by
+    // modules that write stock items programmatically, and for the shared
+    // item change watcher. Methods follow FA's hook dispatch contract:
+    //   method(&$data, $opts=null)
+    // -----------------------------------------------------------------------
+
+    /**
+     * Broadcast an item_created event.
+     *
+     * @param array $data Requires 'stock_id'; optional 'context' array and
+     *                    'trigger' string
+     * @return mixed
+     */
+    public function publishItemCreated($data, $opts=null) {
+        $stockId = isset($data['stock_id']) ? (string) $data['stock_id'] : '';
+        if ($stockId === '') {
+            return null;
+        }
+        $this->itemEventPublisher()->publishCreated(
+            $stockId,
+            isset($data['context']) && is_array($data['context']) ? $data['context'] : array(),
+            isset($data['trigger']) ? (string) $data['trigger'] : 'module'
+        );
+        return true;
+    }
+
+    /**
+     * Broadcast an item_updated event.
+     *
+     * @param array $data Requires 'stock_id'; optional 'context' array and
+     *                    'trigger' string
+     * @return mixed
+     */
+    public function publishItemUpdated($data, $opts=null) {
+        $stockId = isset($data['stock_id']) ? (string) $data['stock_id'] : '';
+        if ($stockId === '') {
+            return null;
+        }
+        $this->itemEventPublisher()->publishUpdated(
+            $stockId,
+            isset($data['context']) && is_array($data['context']) ? $data['context'] : array(),
+            isset($data['trigger']) ? (string) $data['trigger'] : 'module'
+        );
+        return true;
+    }
+
+    /**
+     * Broadcast create-or-update for an item whose lifecycle is unknown.
+     * Sets $data['event'] to the event that was actually broadcast.
+     *
+     * @param array $data Requires 'stock_id'; optional 'context' array and
+     *                    'trigger' string
+     * @return mixed
+     */
+    public function publishItemChanged($data, $opts=null) {
+        $stockId = isset($data['stock_id']) ? (string) $data['stock_id'] : '';
+        if ($stockId === '') {
+            return null;
+        }
+        $event = $this->itemEventPublisher()->publishChanged(
+            $stockId,
+            isset($data['context']) && is_array($data['context']) ? $data['context'] : array(),
+            isset($data['trigger']) ? (string) $data['trigger'] : 'module'
+        );
+        $data['event'] = $event;
+        return true;
+    }
+
+    /**
+     * Run one item change scan and broadcast any creates/updates found.
+     * Sets $data['events'] to the detected event list.
+     *
+     * @param array $data Optional 'trigger' string
+     * @return mixed
+     */
+    public function scanItemChanges($data, $opts=null) {
+        $watcher = new \ksfraser\FrontAccounting\Common\ItemEvents\ItemChangeWatcher(
+            new \ksfraser\FrontAccounting\Common\ItemEvents\FASnapshotSource(),
+            new \ksfraser\FrontAccounting\Common\ItemEvents\DbItemChangeStateStore(),
+            $this->itemEventPublisher()
+        );
+        $data['events'] = $watcher->scan(
+            isset($data['trigger']) ? (string) $data['trigger'] : 'watcher'
+        );
+        return true;
+    }
+
+    /**
+     * Respond to a known-item query. Sets $data['known'] to whether the item
+     * already has sync state tracked by this module.
+     *
+     * @param array $data Requires 'stock_id'
+     * @return mixed
+     */
+    public function isItemKnown($data, $opts=null) {
+        $stockId = isset($data['stock_id']) ? (string) $data['stock_id'] : '';
+        $data['known'] = $stockId !== ''
+            && (new \ksfraser\FrontAccounting\Common\ItemEvents\DbItemChangeStateStore())->has($stockId);
+        return true;
+    }
+
+    // -----------------------------------------------------------------------
     // Private helpers
     // -----------------------------------------------------------------------
+
+    /**
+     * Shared item event publisher bound to FA's hook_invoke_all().
+     */
+    private function itemEventPublisher() {
+        return new \ksfraser\FrontAccounting\Common\ItemEvents\ItemEventPublisher();
+    }
 
     /**
      * Create the ksf_cal_contact_types table if it does not exist.

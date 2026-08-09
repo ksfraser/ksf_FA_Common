@@ -75,3 +75,26 @@ CREATE TABLE IF NOT EXISTS `0_fa_job_queue` (
     INDEX `idx_job_type` (`job_type`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   COMMENT='Non-blocking job queue for background task processing';
+
+-- ===========================================================================
+-- Item Event Sync — stock item create/update watermark tracking
+--
+-- Shared by all KSF modules that react to FA stock item changes (Square,
+-- WooCommerce, ...). The ItemChangeWatcher fingerprints every stock item
+-- (stock_master + item_codes) and compares against 0_ksf_item_sync_state;
+-- differences are broadcast via hook_invoke_all('item_created'/'item_updated').
+-- ===========================================================================
+
+CREATE TABLE IF NOT EXISTS `0_ksf_item_sync_state` (
+    `stock_id`      VARCHAR(20) NOT NULL COMMENT 'FA stock_id (SKU)',
+    `fingerprint`   CHAR(32)    NOT NULL COMMENT 'md5 hash of the last seen item snapshot',
+    `first_seen_at` DATETIME    NOT NULL COMMENT 'When the item was first tracked',
+    `last_seen_at`  DATETIME    NOT NULL COMMENT 'When the item was last scanned',
+    PRIMARY KEY (`stock_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Last-seen fingerprints for FA stock item sync events';
+
+CREATE TABLE IF NOT EXISTS `0_ksf_item_event_watermark` (
+    `id`        TINYINT(1) NOT NULL DEFAULT 1,
+    `watermark` DATETIME   NOT NULL COMMENT 'Timestamp of the most recent watcher scan',
+    PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Scan watermark for the shared item change watcher';
