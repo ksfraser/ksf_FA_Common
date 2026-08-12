@@ -62,10 +62,10 @@ class hooks_ksf_FA_Common extends hooks {
     }
 
     function install_access() {
-        $security_sections[SS_ksf_FA_Common] = _("");
+        $security_sections[SS_ksf_FA_Common] = _("Common");
         $security_areas['SA_ksf_FA_CommonVIEW'] = array(SS_ksf_FA_Common | 1, _("View "));
         $security_areas['SA_ksf_FA_CommonMANAGE'] = array(SS_ksf_FA_Common | 2, _("Manage "));
-        return array($security_sections, $security_areas);
+        return array($security_areas, $security_sections);
     }
 
     // -----------------------------------------------------------------------
