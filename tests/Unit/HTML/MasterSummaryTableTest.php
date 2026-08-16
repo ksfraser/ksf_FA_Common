@@ -257,6 +257,68 @@ class MasterSummaryTableTest extends TestCase
         $this->assertStringContainsString('&lt;b&gt;Stock&lt;/b&gt;', $html);
     }
 
+    public function testEmptyMessageRenderedWhenNoRows(): void
+    {
+        $columns = [
+            ['key' => 'id', 'label' => 'Id'],
+            ['key' => 'name', 'label' => 'Name'],
+        ];
+
+        $table = new MasterSummaryTable($columns, [], [], ['empty_message' => 'No entries defined yet.']);
+        $html  = $table->toHtml();
+
+        $this->assertStringContainsString('<em>No entries defined yet.</em>', $html);
+        $this->assertStringContainsString('<table class="tablestyle">', $html);
+    }
+
+    public function testEmptyMessageSpansAllColumns(): void
+    {
+        $columns = [
+            ['key' => 'id', 'label' => 'Id'],
+            ['key' => 'name', 'label' => 'Name'],
+            ['key' => 'age', 'label' => 'Age'],
+        ];
+
+        $table = new MasterSummaryTable($columns, [], ['edit' => true, 'delete' => true], ['empty_message' => 'None.']);
+        $html  = $table->toHtml();
+
+        $this->assertStringContainsString('<td colspan="4"><em>None.</em></td>', $html);
+    }
+
+    public function testNoEmptyRowWhenRowsPresent(): void
+    {
+        $table = $this->makeTable(['empty_message' => 'Nothing here.']);
+        $html  = $table->toHtml();
+
+        $this->assertStringNotContainsString('Nothing here.', $html);
+    }
+
+    public function testNoEmptyRowWhenMessageOmitted(): void
+    {
+        $columns = [
+            ['key' => 'id', 'label' => 'Id'],
+            ['key' => 'name', 'label' => 'Name'],
+        ];
+
+        $table = new MasterSummaryTable($columns, []);
+        $html  = $table->toHtml();
+
+        $this->assertStringNotContainsString('<em>', $html);
+    }
+
+    public function testEmptyMessageIsEscaped(): void
+    {
+        $columns = [
+            ['key' => 'id', 'label' => 'Id'],
+        ];
+
+        $table = new MasterSummaryTable($columns, [], [], ['empty_message' => '<script>x</script>']);
+        $html  = $table->toHtml();
+
+        $this->assertStringContainsString('&lt;script&gt;x&lt;/script&gt;', $html);
+        $this->assertStringNotContainsString('<script>x</script>', $html);
+    }
+
     public function testIsSubmitPostRecognisesFooterSubmitButton(): void
     {
         $table = $this->makeTable(['submit_button_name' => 'ksf_items_submit']);
