@@ -10,7 +10,8 @@
     },
     "autoload": {
         "psr-4": {
-            "ksfraser\\FrontAccounting\\Common\\": "src/"
+            "ksfraser\\FrontAccounting\\Common\\": "src/",
+            "Ksfraser\\Frontaccounting\\HTML\\": "src/HTML/"
         },
         "files": [
             "src/logging_functions.php",
@@ -33,7 +34,8 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "ksfraser\\FrontAccounting\\Common\\Tests\\": "tests/"
+            "ksfraser\\FrontAccounting\\Common\\Tests\\": "tests/",
+            "Ksfraser\\Frontaccounting\\HTML\\Tests\\": "tests/"
         }
     }
 }
