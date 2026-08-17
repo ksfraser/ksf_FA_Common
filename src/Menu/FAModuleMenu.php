@@ -35,6 +35,10 @@ declare(strict_types=1);
 
 namespace ksfraser\FrontAccounting\Common\Menu;
 
+if (class_exists(\ksfraser\FrontAccounting\Common\Menu\FAModuleMenu::class, false)) {
+    return;
+}
+
 /**
  * FA module navigation menu — item list, in-page HTML renderer,
  * and FA application sidebar registrar.

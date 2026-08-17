@@ -25,11 +25,13 @@
 
 define('SS_ksf_FA_Common', 100 << 8);
 
-// Load Composer autoloader so all KsfCommon classes are available.
-$autoload_path = dirname(__FILE__) . '/vendor/autoload.php';
-if (file_exists($autoload_path)) {
-    require_once $autoload_path;
-}
+// NOTE: Do NOT load ksf_FA_Common's own vendor/autoload.php here.
+// The consuming module's vendor autoload (e.g. FA_ProductAttributes) already
+// registers a PSR-4 autoloader for ksfraser\FrontAccounting\Common\.
+// Loading our own vendor would register a conflicting PSR-4 pointing to
+// ksf_FA_Common/src/ instead of vendor/ksfraser/ksf-fa-common/src/,
+// causing "Cannot redeclare class" fatals when classes are loaded from
+// the vendor copy first and then the PSR-4 autoloader tries ksf_FA_Common/src/.
 
 class hooks_ksf_FA_Common extends hooks {
     var $module_name = 'ksf_FA_Common';

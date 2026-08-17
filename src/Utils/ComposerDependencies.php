@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace ksfraser\FrontAccounting\Common\Utils;
 
+if (class_exists(\ksfraser\FrontAccounting\Common\Utils\ComposerDependencies::class, false)) {
+    return;
+}
+
 final class ComposerDependencies
 {
     public static function ensure(string $moduleDir): bool
