@@ -85,6 +85,9 @@ class MasterSummaryTable
     /** @var string Message rendered in an em row when the table has no rows. */
     private $emptyMessage;
 
+    /** @var bool Whether row-action buttons use FA's ajaxsubmit class. */
+    private $useAjax;
+
     /**
      * @param array<int, array{key: string, label: string}> $columns    List of `['key' => ..., 'label' => ...]`
      * @param array<int, array<string, mixed>>             $rows       List of assoc record arrays
@@ -107,6 +110,7 @@ class MasterSummaryTable
      *   - delete_confirm_message (string, default 'Delete this record?') delete confirm text
      *   - show_footer            (bool,   default true)         render the Submit + Cancel footer row
      *   - empty_message          (string, default '')            message shown in an em row when there are no rows
+     *   - ajax                   (bool,   default true)          use FA ajaxsubmit buttons (false for standalone pages)
      *
      * @since 1.0.0
      */
@@ -132,6 +136,7 @@ class MasterSummaryTable
         $this->deleteConfirmMessage  = (string) ($options['delete_confirm_message'] ?? 'Delete this record?');
         $this->showFooter            = (bool) ($options['show_footer'] ?? true);
         $this->emptyMessage          = (string) ($options['empty_message'] ?? '');
+        $this->useAjax               = (bool) ($options['ajax'] ?? true);
     }
 
     /**
@@ -579,7 +584,9 @@ class MasterSummaryTable
             }
         }
 
-        return '<button class="ajaxsubmit" type="submit" formnovalidate name="' . $escName
+        $btnClass = $this->useAjax ? 'ajaxsubmit' : 'inputsubmit';
+
+        return '<button class="' . $btnClass . '" type="submit" formnovalidate name="' . $escName
             . '" id="' . $escName . '" value="' . $escId . '"' . $extra
             . '><span>' . $escLbl . '</span></button>';
     }
