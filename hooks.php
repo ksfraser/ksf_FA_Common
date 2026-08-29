@@ -25,16 +25,25 @@
 
 define('SS_ksf_FA_Common', 100 << 8);
 
-// NOTE: Do NOT load ksf_FA_Common's own vendor/autoload.php here.
-// The consuming module's vendor autoload (e.g. FA_ProductAttributes) already
-// registers a PSR-4 autoloader for ksfraser\FrontAccounting\Common\.
-// Loading our own vendor would register a conflicting PSR-4 pointing to
-// ksf_FA_Common/src/ instead of vendor/ksfraser/ksf-fa-common/src/,
-// causing "Cannot redeclare class" fatals when classes are loaded from
-// the vendor copy first and then the PSR-4 autoloader tries ksf_FA_Common/src/.
+// NOTE: This module NEVER loads its own vendor/autoload.php. The module dir is
+// the single canonical source for the shared ksf-fa-common namespaces; class
+// loading goes through src/autoload.php (registered in __construct below and
+// first-line in standalone pages). Vendored ksf-fa-common copies must stay
+// inert — never add a PSR-4 for ksfraser\FrontAccounting\Common\ pointing at a
+// vendored copy, or you reintroduce "Cannot redeclare class" fatals.
+// See doc/ProjectDocuments/LOADING_ARCHITECTURE.md.
 
 class hooks_ksf_FA_Common extends hooks {
     var $module_name = 'ksf_FA_Common';
+
+    function __construct() {
+        // Register the module dir as the canonical (single) autoload source for
+        // the shared ksf-fa-common namespaces before any sibling module loads a
+        // class from its own vendored copy. See src/autoload.php.
+        if (is_file(dirname(__FILE__) . '/src/autoload.php')) {
+            require_once dirname(__FILE__) . '/src/autoload.php';
+        }
+    }
 
     function install_extension($check_only=true) {
         return true;
