@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace ksfraser\FrontAccounting\Common\Utils;
 
-if (!defined('KSF_FA_COMMON_COMPOSER_DEPENDENCIES_DECLARED')) {
+$ksfCommonComposerDependenciesAlreadyDeclared = class_exists(__NAMESPACE__ . '\ComposerDependencies', false);
+
+if (!defined('KSF_FA_COMMON_COMPOSER_DEPENDENCIES_DECLARED') && !$ksfCommonComposerDependenciesAlreadyDeclared) {
     define('KSF_FA_COMMON_COMPOSER_DEPENDENCIES_DECLARED', true);
 
     final class ComposerDependencies
