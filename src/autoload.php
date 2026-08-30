@@ -25,4 +25,22 @@ spl_autoload_register(static function (string $class) use ($ksfCommonSrcDir): vo
         }
         return;
     }
+
+    // Legacy KsfCommon\* namespace: remap to the canonical
+    // ksfraser\FrontAccounting\Common\* classes. Keeps sibling-module code
+    // (e.g. fa-product-attributes-core's TabRegistry) working without relying
+    // on a module's vendored compat.php, which may not be loaded.
+    if (strncmp($class, 'KsfCommon\\', 10) === 0) {
+        $target = 'ksfraser\\FrontAccounting\\Common\\' . substr($class, 10);
+        if (class_exists($target)) {
+            class_alias($target, $class);
+        }
+        return;
+    }
 }, true, true);
+
+// Register the backward-compatibility aliases eagerly so legacy KsfCommon\*
+// references resolve even if no module loaded its vendored compat.php.
+if (is_file(__DIR__ . '/compat.php')) {
+    require_once __DIR__ . '/compat.php';
+}
