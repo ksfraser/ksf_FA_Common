@@ -18,9 +18,6 @@ spl_autoload_register(static function (string $class) use ($ksfCommonSrcDir): vo
         if (strncmp($class, $prefix, strlen($prefix)) !== 0) {
             continue;
         }
-        if (class_exists($class, false) || interface_exists($class, false) || trait_exists($class, false)) {
-            return;
-        }
         $relative = substr($class, strlen($prefix));
         $path = $ksfCommonSrcDir . '/' . $subdir . str_replace('\\', '/', $relative) . '.php';
         if (is_file($path)) {
@@ -28,4 +25,4 @@ spl_autoload_register(static function (string $class) use ($ksfCommonSrcDir): vo
         }
         return;
     }
-});
+}, true, true);
