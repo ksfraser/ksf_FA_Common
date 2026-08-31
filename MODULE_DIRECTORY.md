@@ -315,10 +315,14 @@ HRM (`ksf_FA_HRM`) is an orchestrator. These sub-modules answer hooks:
 ### Table Prefix Convention
 - **New modules**: `0_` prefix (e.g., `0_hrm_departments`)
 - **Legacy modules**: bare names (e.g., `fa_campaigns`)
-- **Always**: use `TB_PREF` constant, never hardcode `0_`
+- **PHP code**: always use the `TB_PREF` constant, never hardcode `0_`
+- **SQL files** (install.sql, upgrade SQLs): use hardcoded `0_` prefix — FA's `db_import()` / `update_databases()` does not resolve placeholders in SQL files. Do NOT use `@TB_PREF@` or `{TB_PREF}` in SQL files.
 
 ### Shared Tables
-- `0_ksf_contact_types` — Contact type registry (ksf_FA_Common)
+- `0_ksf_contact_types` — Contact type registry (schema owned by ksf-fa-common package, created on demand via `ensureTable()`)
+- `0_ksf_notifications` — Shared notification outbox (schema on demand)
+- `0_fa_job_queue` — Background job queue (schema on demand)
+- `0_ksf_item_sync_state` / `0_ksf_item_event_watermark` — Item event watermark (schema on demand)
 - `0_staging_*` — Unified staging pipeline (ksf_FA_ImportStagingProcessing)
 - `0_rbac_*` — RBAC teams and access (ksf_FA_RBAC)
 
