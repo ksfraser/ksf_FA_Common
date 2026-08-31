@@ -14,11 +14,13 @@
  *   ContactTypeRegistry::getTypes()
  *     → SELECT * FROM ksf_contact_types
  *     → static cache (per request)
- *     → fallback: built-in defaults if table missing/empty
+ *     → empty array if table missing/empty (no platform-seeded types —
+ *        every type is owned and registered by its natural module)
  *
  * Write path (activation only):
  *   Module::activate_extension()
  *     → ContactTypeRegistry::registerTypes([...])
+ *     → ensureTable() (CREATE TABLE IF NOT EXISTS — the package owns the schema)
  *     → INSERT IGNORE INTO ksf_contact_types
  *
  * @package KsfCommon\ContactType
@@ -39,8 +41,9 @@ class ContactTypeRegistry
     /**
      * Return all registered contact types, keyed by name.
      *
-     * Reads from the DB table (with per-request caching).  Falls back to
-     * built-in defaults if the table does not exist.
+     * Reads from the DB table (with per-request caching).  Returns an empty
+     * array if the table is missing or empty — the package seeds no types;
+     * each type is defined by the module that owns it.
      *
      * @return ContactType[]
      */
@@ -53,7 +56,7 @@ class ContactTypeRegistry
         self::$types = self::loadFromDb();
 
         if (empty(self::$types)) {
-            self::$types = self::getDefaultTypes();
+            self::$types = array();
         }
 
         return self::$types;
@@ -119,6 +122,8 @@ class ContactTypeRegistry
             return;
         }
 
+        self::ensureTable();
+
         $prefix = defined('TB_PREF') ? TB_PREF : '';
 
         foreach ($types as $type) {
@@ -151,6 +156,8 @@ class ContactTypeRegistry
         if ($module === '' || !function_exists('db_query')) {
             return;
         }
+
+        self::ensureTable();
 
         $prefix = defined('TB_PREF') ? TB_PREF : '';
         $sql    = "DELETE FROM `{$prefix}" . self::TABLE_NAME . "` WHERE module = " . db_escape($module);
@@ -220,32 +227,32 @@ class ContactTypeRegistry
     }
 
     /**
-     * Built-in defaults when the DB table is not available.
+     * Ensure the contact types table exists.
      *
-     * ksf_FA_Common always defines the base User type.  RBAC, CRM, HRM,
-     * Assets, and Project modules extend this set during activation.
+     * The package owns the schema; there is no ksf_FA_Common module to run an
+     * install.sql any more.  Called idempotently from the write paths so a
+     * natural module (RBAC, CRM, Calendar, HRM, Assets, …) can register its
+     * types on a fresh install without any prior module activation.
      *
-     * @return ContactType[]  Keyed by name.
+     * @return void
      */
-    private static function getDefaultTypes(): array
+    private static function ensureTable(): void
     {
-        return [
-            'fa_user'     => new ContactType(
-                'fa_user', 'FA User', 'ksf_FA_Common',
-                'FrontAccounting RBAC user account'
-            ),
-            'crm_contact' => new ContactType(
-                'crm_contact', 'CRM Contact', 'ksf_FA_Common',
-                'Customer or lead managed by the CRM module'
-            ),
-            'resource'    => new ContactType(
-                'resource', 'Resource', 'ksf_FA_Common',
-                'Shared resource (room, equipment, vehicle)'
-            ),
-            'ad_hoc'      => new ContactType(
-                'ad_hoc', 'Ad-hoc', 'ksf_FA_Common',
-                'External invitee without a system record'
-            ),
-        ];
+        if (!function_exists('db_query')) {
+            return;
+        }
+
+        $prefix = defined('TB_PREF') ? TB_PREF : '';
+        db_query(
+            "CREATE TABLE IF NOT EXISTS `{$prefix}" . self::TABLE_NAME . "` (\n"
+            . "  `name`        VARCHAR(50)  NOT NULL COMMENT 'Machine name (e.g. fa_user, employee, invitee, lead)',\n"
+            . "  `label`       VARCHAR(100) NOT NULL COMMENT 'Human-readable label',\n"
+            . "  `module`      VARCHAR(100) NOT NULL COMMENT 'Owning module identifier (e.g. ksf_RBAC, ksf_CRM, ksf_HRM)',\n"
+            . "  `description` VARCHAR(255) DEFAULT NULL COMMENT 'Optional explanation of what this type represents',\n"
+            . "  `created_at`  TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,\n"
+            . "  PRIMARY KEY (`name`)\n"
+            . ") ENGINE=InnoDB DEFAULT CHARSET=utf8",
+            'Could not create contact types table: ' . self::TABLE_NAME
+        );
     }
 }

@@ -2,8 +2,10 @@
 /**
  * ContactTypeRegistry unit tests.
  *
- * Tests the fallback/default path (no FA db_query available).  The DB-backed
- * path is tested via integration tests against the real database.
+ * Tests the fallback path (no FA db_query available).  The package seeds no
+ * types: with no database (or an empty table) the registry returns an empty
+ * set, and every type must be registered by its natural owning module.
+ * The DB-backed path is tested via integration tests against the real database.
  *
  * @package ksfraser\FrontAccounting\Common\Tests\Unit\ContactType
  */
@@ -30,90 +32,65 @@ class ContactTypeRegistryTest extends TestCase
         parent::tearDown();
     }
 
-    public function testGetTypesReturnsDefaultsWhenNoDb(): void
+    public function testGetTypesReturnsEmptyArrayWhenNoDb(): void
     {
         $types = ContactTypeRegistry::getTypes();
 
-        $this->assertArrayHasKey('fa_user', $types);
-        $this->assertArrayHasKey('crm_contact', $types);
-        $this->assertArrayHasKey('resource', $types);
-        $this->assertArrayHasKey('ad_hoc', $types);
-        $this->assertCount(4, $types);
+        $this->assertIsArray($types);
+        $this->assertCount(0, $types);
     }
 
-    public function testGetTypesAreContactTypeInstances(): void
+    public function testPackageSeedsNoPlatformOwnedTypes(): void
+    {
+        // The platform registers no concrete contact types; each type is owned
+        // and registered by its natural module (RBAC, CRM, Calendar, HRM, ...).
+        $types = ContactTypeRegistry::getTypes();
+
+        foreach (['fa_user', 'crm_contact', 'resource', 'ad_hoc'] as $name) {
+            $this->assertArrayNotHasKey($name, $types, "Platform must not seed type: $name");
+        }
+    }
+
+    public function testGetTypesReturnsOnlyContactTypeInstances(): void
     {
         $types = ContactTypeRegistry::getTypes();
 
+        $this->assertIsArray($types);
         foreach ($types as $name => $type) {
             $this->assertInstanceOf(ContactType::class, $type);
             $this->assertSame($name, $type->getName());
         }
     }
 
-    public function testDefaultTypeValuesAreCorrect(): void
+    public function testGetTypeReturnsNullWithoutRegistration(): void
     {
-        $types = ContactTypeRegistry::getTypes();
-
-        $faUser = $types['fa_user'];
-        $this->assertSame('fa_user', $faUser->getName());
-        $this->assertSame('FA User', $faUser->getLabel());
-        $this->assertSame('ksf_FA_Common', $faUser->getModule());
-        $this->assertSame('FrontAccounting RBAC user account', $faUser->getDescription());
-    }
-
-    public function testGetTypeReturnsSingle(): void
-    {
-        $type = ContactTypeRegistry::getType('resource');
-
-        $this->assertInstanceOf(ContactType::class, $type);
-        $this->assertSame('resource', $type->getName());
-        $this->assertSame('Resource', $type->getLabel());
-    }
-
-    public function testGetTypeReturnsNullForUnknown(): void
-    {
+        $this->assertNull(ContactTypeRegistry::getType('fa_user'));
+        $this->assertNull(ContactTypeRegistry::getType('resource'));
         $this->assertNull(ContactTypeRegistry::getType('nonexistent_type'));
     }
 
-    public function testGetTypeNamesReturnsStrings(): void
+    public function testGetTypeNamesReturnsEmptyArray(): void
     {
         $names = ContactTypeRegistry::getTypeNames();
 
-        $this->assertContains('fa_user', $names);
-        $this->assertContains('crm_contact', $names);
-        $this->assertContains('resource', $names);
-        $this->assertContains('ad_hoc', $names);
-        $this->assertCount(4, $names);
+        $this->assertIsArray($names);
+        $this->assertCount(0, $names);
     }
 
-    public function testIsValidType(): void
+    public function testIsValidTypeFalseWithoutRegistration(): void
     {
-        $this->assertTrue(ContactTypeRegistry::isValidType('fa_user'));
-        $this->assertTrue(ContactTypeRegistry::isValidType('ad_hoc'));
-        $this->assertFalse(ContactTypeRegistry::isValidType('badger'));
+        $this->assertFalse(ContactTypeRegistry::isValidType('fa_user'));
+        $this->assertFalse(ContactTypeRegistry::isValidType('employee'));
         $this->assertFalse(ContactTypeRegistry::isValidType(''));
+        $this->assertFalse(ContactTypeRegistry::isValidType('badger'));
     }
 
-    public function testGetTypeDefinitionsReturnsArrays(): void
+    public function testGetTypeDefinitionsReturnsEmptyArray(): void
     {
         $definitions = ContactTypeRegistry::getTypeDefinitions();
 
-        $this->assertCount(4, $definitions);
-
-        $faUserDef = null;
-        foreach ($definitions as $def) {
-            if ($def['name'] === 'fa_user') {
-                $faUserDef = $def;
-                break;
-            }
-        }
-
-        $this->assertNotNull($faUserDef);
-        $this->assertSame('fa_user', $faUserDef['name']);
-        $this->assertSame('FA User', $faUserDef['label']);
-        $this->assertArrayHasKey('description', $faUserDef);
-        $this->assertArrayHasKey('module', $faUserDef);
+        $this->assertIsArray($definitions);
+        $this->assertCount(0, $definitions);
     }
 
     public function testGetTypesIsCachedPerRequest(): void
@@ -126,19 +103,18 @@ class ContactTypeRegistryTest extends TestCase
 
     public function testResetClearsCache(): void
     {
-        $before = ContactTypeRegistry::getTypes();
-        ContactTypeRegistry::reset();
-        $after = ContactTypeRegistry::getTypes();
+        ContactTypeRegistry::getTypes();
+        $this->assertIsArray(self::readCache());
 
-        // After reset, a new array is built (same content, different instance).
-        $this->assertNotSame($before, $after);
-        $this->assertCount(count($before), $after);
+        ContactTypeRegistry::reset();
+        $this->assertNull(self::readCache());
+
+        ContactTypeRegistry::getTypes();
+        $this->assertIsArray(self::readCache());
     }
 
     public function testRegisterTypesIsNoOpOutsideFa(): void
     {
-        // Outside of FA context (no db_query), registerTypes should silently
-        // do nothing.  Defaults should still be returned.
         $beforeCount = count(ContactTypeRegistry::getTypes());
 
         $newType = new ContactType('custom_type', 'Custom', 'ksf_Custom');
@@ -151,7 +127,6 @@ class ContactTypeRegistryTest extends TestCase
 
     public function testUnregisterModuleIsNoOpOutsideFa(): void
     {
-        // Outside FA context, unregisterModule should silently do nothing.
         $beforeCount = count(ContactTypeRegistry::getTypes());
 
         ContactTypeRegistry::unregisterModule('ksf_FA_Common');
@@ -166,18 +141,12 @@ class ContactTypeRegistryTest extends TestCase
         $definitions = ContactTypeRegistry::getTypeDefinitions();
 
         $this->assertCount(count($names), $definitions);
-
-        $defNames = array_column($definitions, 'name');
-        $this->assertSame($names, $defNames);
+        $this->assertSame($names, array_column($definitions, 'name'));
     }
 
-    public function testDefaultsContainAllPlatformTypes(): void
+    private static function readCache(): ?array
     {
-        $types = ContactTypeRegistry::getTypes();
-
-        $expectedNames = ['fa_user', 'crm_contact', 'resource', 'ad_hoc'];
-        foreach ($expectedNames as $name) {
-            $this->assertArrayHasKey($name, $types, "Missing default type: $name");
-        }
+        $property = new \ReflectionProperty(ContactTypeRegistry::class, 'types');
+        return $property->getValue();
     }
 }

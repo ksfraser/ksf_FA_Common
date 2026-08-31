@@ -16,20 +16,17 @@
 CREATE TABLE IF NOT EXISTS `0_ksf_contact_types` (
     `name`        VARCHAR(50)  NOT NULL COMMENT 'Machine name (e.g. fa_user, employee, resource, team)',
     `label`       VARCHAR(100) NOT NULL COMMENT 'Human-readable label (e.g. FA User, Employee, Resource)',
-    `module`      VARCHAR(100) NOT NULL COMMENT 'Owning module identifier (e.g. ksf_FA_Common, ksf_RBAC, ksf_HRM)',
+    `module`      VARCHAR(100) NOT NULL COMMENT 'Owning module identifier (e.g. ksf_RBAC, ksf_HRM, ksf_CRM)',
     `description` VARCHAR(255) DEFAULT NULL COMMENT 'Optional explanation of what this type represents',
     `created_at`  TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (`name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Platform-level contact type definitions from active KSF modules';
 
--- Populate default types that ship with the platform.
-INSERT IGNORE INTO `0_ksf_contact_types`
-    (`name`, `label`, `module`, `description`)
-VALUES
-    ('fa_user',     'FA User',     'ksf_FA_Common', 'FrontAccounting RBAC user account'),
-    ('crm_contact', 'CRM Contact', 'ksf_FA_Common', 'Customer or lead managed by the CRM module'),
-    ('resource',    'Resource',    'ksf_FA_Common', 'Shared resource (room, equipment, vehicle)'),
-    ('ad_hoc',      'Ad-hoc',      'ksf_FA_Common', 'External invitee without a system record');
+-- NOTE: no type rows are seeded here. The contact types table is created
+-- on demand by ContactTypeRegistry::ensureTable(); each type is owned and
+-- registered by its natural module during activate_extension() (RBAC -> fa_user,
+-- CRM -> crm_contact/lead, Calendar -> invitee, HRM -> employee/team/job_applicant,
+-- Assets -> resource).
 
 CREATE TABLE IF NOT EXISTS `0_ksf_notifications` (
     `id`                  INT UNSIGNED NOT NULL AUTO_INCREMENT,

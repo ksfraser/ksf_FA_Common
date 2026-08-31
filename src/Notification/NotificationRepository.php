@@ -11,8 +11,13 @@ final class NotificationRepository implements NotificationStorageInterface
 {
     private const TABLE = 'ksf_notifications';
 
+    /** @var bool Whether the notifications table has been ensured this request. */
+    private $schemaEnsured = false;
+
     public function save(Notification $notification): Notification
     {
+        $this->ensureTable();
+
         $sql = sprintf(
             'INSERT INTO %s (source_module, source_ref, recipient_user_id, notification_type, channel, title, body, payload_json, status, scheduled_at, dispatched_at, acknowledged_at, ack_token, created_at, updated_at) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW())',
             $this->tableName(),
@@ -37,6 +42,8 @@ final class NotificationRepository implements NotificationStorageInterface
 
     public function findDue(DateTimeInterface $now): array
     {
+        $this->ensureTable();
+
         $sql = sprintf(
             'SELECT * FROM %s WHERE status = %s AND (scheduled_at IS NULL OR scheduled_at <= %s) ORDER BY id ASC',
             $this->tableName(),
@@ -53,6 +60,8 @@ final class NotificationRepository implements NotificationStorageInterface
 
     public function findById(int $id): ?Notification
     {
+        $this->ensureTable();
+
         $sql = sprintf('SELECT * FROM %s WHERE id = %s LIMIT 1', $this->tableName(), db_escape((string) $id));
         $result = db_query($sql, 'Failed to load notification');
         $row = ($result && function_exists('db_fetch_assoc')) ? db_fetch_assoc($result) : false;

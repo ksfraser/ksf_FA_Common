@@ -34,6 +34,44 @@ class DbItemChangeStateStore implements ItemChangeStateStoreInterface
     /** @var string|null In-memory fallback watermark. */
     private $memoryWatermark = null;
 
+    /** @var bool Whether the sync-state tables have been ensured this request. */
+    private $schemaEnsured = false;
+
+    /**
+     * Ensure the sync-state tables exist (created on demand).
+     *
+     * The package owns the schema; there is no module activation step that
+     * installs shared tables any more.
+     */
+    private function ensureTable(): void
+    {
+        if ($this->schemaEnsured || !$this->dbAvailable()) {
+            return;
+        }
+
+        $pref = defined('TB_PREF') ? TB_PREF : '';
+        db_query(
+            "CREATE TABLE IF NOT EXISTS `{$pref}" . self::TABLE_STATE . "` (\n"
+            . "    `stock_id`      VARCHAR(20) NOT NULL COMMENT 'FA stock_id (SKU)',\n"
+            . "    `fingerprint`   CHAR(32)    NOT NULL COMMENT 'md5 hash of the last seen item snapshot',\n"
+            . "    `first_seen_at` DATETIME    NOT NULL COMMENT 'When the item was first tracked',\n"
+            . "    `last_seen_at`  DATETIME    NOT NULL COMMENT 'When the item was last scanned',\n"
+            . "    PRIMARY KEY (`stock_id`)\n"
+            . ") ENGINE=InnoDB DEFAULT CHARSET=utf8",
+            'Could not create item sync state table: ' . self::TABLE_STATE
+        );
+        db_query(
+            "CREATE TABLE IF NOT EXISTS `{$pref}" . self::TABLE_WATERMARK . "` (\n"
+            . "    `id`        TINYINT(1) NOT NULL DEFAULT 1,\n"
+            . "    `watermark` DATETIME   NOT NULL COMMENT 'Timestamp of the most recent watcher scan',\n"
+            . "    PRIMARY KEY (`id`)\n"
+            . ") ENGINE=InnoDB DEFAULT CHARSET=utf8",
+            'Could not create item event watermark table: ' . self::TABLE_WATERMARK
+        );
+
+        $this->schemaEnsured = true;
+    }
+
     /**
      * @param string $stockId FA stock_id
      *
@@ -55,6 +93,8 @@ class DbItemChangeStateStore implements ItemChangeStateStoreInterface
      */
     public function get(string $stockId): ?array
     {
+        $this->ensureTable();
+
         if (!$this->dbAvailable()) {
             return $this->memory[$stockId] ?? null;
         }
@@ -82,6 +122,8 @@ class DbItemChangeStateStore implements ItemChangeStateStoreInterface
     {
         $fingerprint = isset($state['fingerprint']) ? (string) $state['fingerprint'] : '';
 
+        $this->ensureTable();
+
         if (!$this->dbAvailable()) {
             $this->memory[$stockId] = ['fingerprint' => $fingerprint];
             return;
@@ -108,6 +150,8 @@ class DbItemChangeStateStore implements ItemChangeStateStoreInterface
      */
     public function remove(string $stockId): void
     {
+        $this->ensureTable();
+
         if (!$this->dbAvailable()) {
             unset($this->memory[$stockId]);
             return;
@@ -128,6 +172,8 @@ class DbItemChangeStateStore implements ItemChangeStateStoreInterface
      */
     public function allStockIds(): array
     {
+        $this->ensureTable();
+
         if (!$this->dbAvailable()) {
             return array_keys($this->memory);
         }
@@ -149,6 +195,8 @@ class DbItemChangeStateStore implements ItemChangeStateStoreInterface
      */
     public function getWatermark(): ?string
     {
+        $this->ensureTable();
+
         if (!$this->dbAvailable()) {
             return $this->memoryWatermark;
         }
@@ -169,6 +217,8 @@ class DbItemChangeStateStore implements ItemChangeStateStoreInterface
      */
     public function setWatermark(string $timestamp): void
     {
+        $this->ensureTable();
+
         if (!$this->dbAvailable()) {
             $this->memoryWatermark = $timestamp;
             return;

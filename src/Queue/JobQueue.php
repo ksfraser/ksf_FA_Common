@@ -35,6 +35,9 @@ class JobQueue
 {
     private const TABLE = 'fa_job_queue';
 
+    /** @var bool Whether the job queue table has been ensured this request. */
+    private static $schemaEnsured = false;
+
     /**
      * Enqueue a background job.
      *
@@ -46,6 +49,8 @@ class JobQueue
      */
     public static function createJob(string $type, array $payload = [], int $priority = 0, ?string $scheduledAt = null): int
     {
+        self::ensureTable();
+
         $pref = defined('TB_PREF') ? TB_PREF : '';
         $table = $pref . self::TABLE;
 
@@ -75,6 +80,8 @@ class JobQueue
      */
     public static function processJobs(int $limit = 10): array
     {
+        self::ensureTable();
+
         $pref = defined('TB_PREF') ? TB_PREF : '';
         $table = $pref . self::TABLE;
 
@@ -144,6 +151,8 @@ class JobQueue
      */
     public static function getStats(): array
     {
+        self::ensureTable();
+
         $pref = defined('TB_PREF') ? TB_PREF : '';
         $table = $pref . self::TABLE;
 
@@ -158,6 +167,42 @@ class JobQueue
     }
 
     // ---- DB helpers (same pattern as FA's db_* functions) ----
+
+    /**
+     * Ensure the job queue table exists (created on demand).
+     *
+     * The package owns the schema; there is no module activation step that
+     * installs shared tables any more.
+     */
+    private static function ensureTable(): void
+    {
+        if (self::$schemaEnsured || !function_exists('db_query')) {
+            return;
+        }
+
+        $pref = defined('TB_PREF') ? TB_PREF : '';
+        db_query(
+            "CREATE TABLE IF NOT EXISTS `{$pref}" . self::TABLE . "` (\n"
+            . "    `id`            INT           NOT NULL AUTO_INCREMENT,\n"
+            . "    `job_type`      VARCHAR(128)  NOT NULL COMMENT 'Job type identifier (e.g. send_email, assign_sales_rep)',\n"
+            . "    `payload`       JSON          NULL     COMMENT 'Job parameters as JSON',\n"
+            . "    `status`        ENUM('pending','processing','completed','failed','cancelled') NOT NULL DEFAULT 'pending',\n"
+            . "    `priority`      INT           NOT NULL DEFAULT 0 COMMENT 'Higher = more urgent',\n"
+            . "    `attempts`      TINYINT       NOT NULL DEFAULT 0,\n"
+            . "    `max_attempts`  TINYINT       NOT NULL DEFAULT 3,\n"
+            . "    `error_message` TEXT          NULL,\n"
+            . "    `created_at`    DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,\n"
+            . "    `scheduled_at`  DATETIME      NULL     COMMENT 'Delay execution until this time',\n"
+            . "    `processed_at`  DATETIME      NULL,\n"
+            . "    PRIMARY KEY (`id`),\n"
+            . "    INDEX `idx_status_priority` (`status`, `priority`, `scheduled_at`),\n"
+            . "    INDEX `idx_job_type` (`job_type`)\n"
+            . ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+            'Could not create job queue table: ' . self::TABLE
+        );
+
+        self::$schemaEnsured = true;
+    }
 
     private static function dbQuery(string $sql, string $msg)
     {
