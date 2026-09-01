@@ -45,11 +45,12 @@
 |---------|-----|-----------|---------|
 | `ksfraser/exceptions` | `Exceptions/` | `Ksfraser\Exceptions\` | Centralized exception library (Domain, Utility, CRM, Calendar, PM). 24 dependents. |
 | `ksfraser/famock` | `famock/` | `Ksfraser\FAMock\` | FA function mocks for unit testing outside live FA. 20 dependents. |
-| `ksfraser/ksf-fa-common` | `ksf_FA_Common/` | `ksfraser\FrontAccounting\Common\` | Shared FA platform: ContactTypeRegistry, SchemaInstaller, Traits (WorkflowHooks, CrudOperations, FlashMessage, CalendarRegistration). **Activate first.** 14 dependents. |
+| `ksfraser/ksf-fa-common` | `ksf_FA_Common/` | `ksfraser\FrontAccounting\Common\` | Shared FA platform: ContactTypeRegistry, SchemaInstaller, Traits (WorkflowHooks, CrudOperations, FlashMessage, CalendarRegistration), plus `FileStorageService` and a `BaseHooks` base class (referenced by ksf_FA_Attachments). **Activate first.** 14 dependents. |
 | `ksfraser/traits` | `Traits/` | `Ksfraser\Traits\` | Reusable traits: CrudEventEmitter, EntityState, EventEmitter, HookQueryProvider, InlineTabRenderer, Validatable, Timestamp, PSR-3 FileLogger. 13 dependents. |
 | `ksfraser/ksf-modules-dao` | `ksf_ModulesDAO/` | `Ksfraser\ModulesDAO\` | Cross-platform DAO: RecordStoreInterface, DbAdapterInterface, KeyValueStoreInterface. Adapters for FA, PDO, WordPress, SuiteCRM. 13 dependents. |
 | `ksfraser/database` | `Database/` | `Ksfraser\Database\` | Database helper utilities (DbManager static wrapper). 12 dependents. |
 | `ksfraser/ksf_modules_common` | `ksf_modules_common/` | `Ksfraser\ModulesCommon\` | Calculation framework: engine contract, context/result, parameter definitions, validation rules. 10 dependents. |
+| `ksfraser/ksf-common-db` | `ksf_common_db/` | `ksfraser\CommonDb\` | Transport-agnostic data dictionary + query builder. `DbConnectionInterface`, `FaDbAdapter` (native `db_*`, FA runtime), `PdoDbAdapter` (standalone), `TableDefinition`, `QueryBuilder`. Consumed by RBAC. |
 | `ksfraser/html` | `ksfraser/html/` | `Ksfraser\HTML\` | HTML generation library: Buttons, Cells, Forms, Tables, CSS, Ajax, Themes. |
 
 ---
@@ -66,6 +67,10 @@
 | `ksfraser/fa-classes` | `ksf_FA_Classes/` | `FrontAccounting\` | FA table classes and data-access helpers |
 | `ksfraser/ksf-estate` | `ksf_estate/` | `Ksfraser\Estate\` | Estate planning calculations |
 | `ksfraser/ksf_insurance` | `ksf_insurance/` | `Ksfraser\Insurance\` | Insurance calculations |
+| `ksfraser/ksf_fa_api_core` | `ksf_FA_API_Core/` | `Ksfraser\ApiCore\` | API business logic (companion to ksf_FA_API) |
+| `ksfraser/ksf_fa_assets_core` | `ksf_FA_Assets_Core/` | `Ksfraser\FA_Assets\` | Assets business logic (companion to ksf_FA_Assets) |
+| `ksfraser/ksf_asteriskpbx_core` | `ksf_AsteriskPBX_Core/` | `Ksfraser\AsteriskPBX\` | Asterisk PBX business logic (companion to ksf_FA_AsteriskPBX) |
+| `ksfraser/ksf_calendar_core` | `ksf_Calendar_Core/` | `Ksfraser\Calendar\` | Calendar business logic (companion to ksf_FA_Calendar) |
 | `ksfraser/fa-hooks` | *(vendor)* | `Ksfraser\FA_Hooks\` | Lightweight FA hook system |
 | `ksfraser/contact-dto` | *(vendor)* | `Ksfraser\Contact\` | Shared Contact DTO |
 
@@ -78,9 +83,9 @@ HRM (`ksf_FA_HRM`) is an orchestrator. These sub-modules answer hooks:
 | Sub-Module | Dir | Tables | Purpose | Status |
 |------------|-----|--------|---------|--------|
 | **ksf_FA_EmployeePay** | `ksf_FA_EmployeePay/` | `0_ksf_employeepay_*` (8 tables) | Payroll calculations, deductions, entries, settings | Built out |
-| **ksf_FA_Leave** | `ksf_FA_Leave/` | `0_leave_*` (9 tables) | Leave requests, approvals, balances, accruals | Built out |
+| **ksf_FA_Leave** | `ksf_FA_Leave/` | `0_leave_*` (9 tables) | Leave requests, approvals, balances, accruals. Depends on `ksf_FA_CRM` for `0_crm_persons` (person records). | Built out |
 | **ksf_FA_Recruitment** | `ksf_FA_Recruitment/` | `0_recruit_*` (8 tables) | Job openings, applications, interviews, offers | Built out |
-| **ksf_FA_Onboarding** | `ksf_FA_Onboarding/` | `fa_onboarding_*` (3 tables) | Onboarding checklists and workflows | Built out |
+| **ksf_FA_Onboarding** | `ksf_FA_Onboarding/` | `fa_onboarding_*` (3 tables) | Onboarding checklists and workflows. Depends on `ksf_FA_Recruitment` (onboard from recruitment). | Built out |
 | **ksf_FA_Performance** | `ksf_FA_Performance/` | `fa_performance_*` (2 tables) | OKR performance management | Built out |
 | **ksf_FA_Timesheets** | `ksf_FA_Timesheets/` | `fa_timesheet_*` (2 tables) | Time tracking entries | Built out |
 | **ksf_FA_Roster** | `ksf_FA_Roster/` | `fa_roster_*` (3 tables) | Shift scheduling | Built out |
@@ -101,7 +106,7 @@ HRM (`ksf_FA_HRM`) is an orchestrator. These sub-modules answer hooks:
 | **ksf_FA_Classes** | — | Base class library (no hooks.php) | None |
 | **ksf_FA_RBAC** | 1.0.0 | Role-based access control. Bridges `ksfraser/rbac` to FA. | `0_rbac_teams`, `0_rbac_team_members`, `0_rbac_record_access`, `0_rbac_audit_log` |
 | **ksf_FA_GPG** | 2.4.19-0 | GPG signing/encryption. Key management UI. | `0_ksf_gpg_keys`, `0_ksf_gpg_operations`, `0_ksf_gpg_files`, `0_ksf_gpg_settings`, `0_ksf_gpg_team_keys` |
-| **ksf_FA_Mail** | — | SMTP mail via PHPMailer. System-wide and per-user accounts. | `0_preference_values` |
+| **ksf_FA_Mail** | — | SMTP mail via PHPMailer. System-wide and per-user accounts. Calendar integration: `cal_mail_with_ical()` → `ksf_mail_send_ical()` call chain for iCal invites. | `0_preference_values` |
 | **ksf_FA_Logging** | — | Structured JSON-lines logging. Per-module log levels. | `0_ksf_log_levels` |
 | **ksf_FA_API** | 1.0.0 | REST API endpoints | `0_ksf_api_logs` |
 | **ksf_FA_DataIntegrity** | 2.4.4 | Purchase/sales chain auditing. Orphan/counter drift detection. | `0_ksf_integrity_log` |
@@ -114,7 +119,7 @@ HRM (`ksf_FA_HRM`) is an orchestrator. These sub-modules answer hooks:
 | **ksf_FA_Calendar** | 2.5.0 | Calendar/events/meetings. CRM/HRM integration. Has own app tab. | `0_fa_cal_entries`, `0_fa_cal_invitees`, `0_fa_cal_sources` |
 | **ksf_FA_CampaignBuilder** | 1.0.0 | Marketing campaign management | `fa_campaigns`, `fa_campaign_nodes` |
 | **ksf_FA_EmailManager** | 1.0.0 | Email campaigns, templates, automation | Schema placeholder |
-| **ksf_FA_Loyalty** | 1.0.0 | Customer loyalty points/tiers | Schema placeholder |
+| **ksf_FA_Loyalty** | 1.0.0 | Customer loyalty points/tiers. Depends on `ksf_FA_CRM` (customer contacts). | Schema placeholder |
 | **ksf_FA_Coupons** | 1.0.0 | Coupon management | Schema placeholder |
 
 ### HR / People (see also HRM Sub-Modules above)
@@ -140,9 +145,8 @@ HRM (`ksf_FA_HRM`) is an orchestrator. These sub-modules answer hooks:
 |--------|---------|---------|--------|
 | **ksf_FA_Square** | — | Square POS sync. Items/customers/orders. Has own app tab. | `0_square*`, `0_ksf_import_square_*` (12 tables) |
 | **ksf_FA_Woocommerce** | 2.4.3-0 | WooCommerce bidirectional sync | Uses ImportStagingProcessing tables |
-| **ksf_FA_ImportStagingProcessing** | — | Unified staging pipeline for all external imports | `0_staging_*` (8 tables) |
-| **ksf_FA_ImportStagingProcessing_UI** | 2.4.3-0 | FA UI for staging pipeline | None (uses ISP tables) |
-
+| **ksf_FA_ImportStagingProcessing** | — | Unified staging pipeline for all external imports. Source modules: WooCommerce, Square API, Square CSV, PayPal, Bank Import. | `0_staging_*` (8 tables) |
+| **ksf_FA_ImportStagingProcessing_UI** | 2.4.3-0 | FA UI for staging pipeline (legacy rename of `FA_ImportSquareUp`) | None (uses ISP tables) |
 ### Finance / Accounting
 
 | Module | Version | Purpose | Tables |
@@ -342,10 +346,11 @@ HRM (`ksf_FA_HRM`) is an orchestrator. These sub-modules answer hooks:
 | `HookQueryProviderTrait` | ksfraser/traits | Hook-based query provision |
 | `InlineTabRendererTrait` | ksfraser/traits | FA inline tab rendering |
 | `InlineTabSaverTrait` | ksfraser/traits | FA inline tab saving |
+| `InlinePostActionsTrait` | ksfraser/traits | FA tab inline POST save/delete via a configured upsert action (v1.4.0) |
 | `ValidatableTrait` | ksfraser/traits | Validation integration |
 | `TimestampTrait` | ksfraser/traits | Created/updated timestamps |
 | `LoggerAwareTrait` | ksfraser/traits | PSR-3 logger injection |
 
 ---
 
-*Last updated: 2026-08-26*
+*Last updated: 2026-09-01*

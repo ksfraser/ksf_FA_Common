@@ -32,7 +32,7 @@ Packagist URL pattern: `https://packagist.org/packages/<package>`.
 | RBAC library | `ksfraser/rbac` |
 | Calendar (aggregates PM/CRM/HRM) | `ksfraser/ksf-calendar` |
 
-## Full catalogue (142 packages)
+## Full catalogue (146 packages)
 
 | Package | Type | Source repo | Description |
 |---------|------|-------------|-------------|
@@ -45,11 +45,13 @@ Packagist URL pattern: `https://packagist.org/packages/<package>`.
 | `ksfraser/validation` | library | `Validation` | Small validation helpers and traits (PHP 7.3+) for KS Fraser modules migration. |
 | `ksfraser/famock` | library | `famock` | FrontAccounting function mocks for unit testing |
 | `ksfraser/ksf_asteriskpbx` | library | `ksf_AsteriskPBX` | KSF Asterisk PBX Integration - SMS, Click-to-call, Call Popup, ANI Matching |
+| `ksfraser/ksf_asteriskpbx_core` | library | `ksf_AsteriskPBX_Core` | Asterisk PBX business logic (companion to ksf_FA_AsteriskPBX) |
 | `ksfraser/ksf-crm` | library | `ksf_CRM` | CRM Business Logic Library - Framework-agnostic domain entities, services, and events |
 | `ksfraser/gedcom` | library | `ksf_CRM_GEDCOM` | GEDCOM 5.5 parsing and generation library - Framework-agnostic import/export business logic |
 | `ksfraser/ksf_crm_ui` | project | `ksf_CRM_UI` | Standalone CRM_UI UI - includes UI, DB service, controller |
 | `ksfraser/ksf-calendar` | library | `ksf_Calendar` | Unified calendar system - aggregates PM tasks, CRM activities, HRM time tracking, client dates. iCal import/export, multi-calendar filter, FullCalendar.js ready. Replicates/replaces SuiteCRM, vTiger, WebCalendar calendar views. |
 | `ksfraser/ksf-calendar-ui` | library | `ksf_Calendar_UI` | Standalone Calendar UI - FullCalendar.js frontend for ksf_Calendar. Multiple calendar views, drag-and-drop, iCal sync. |
+| `ksfraser/ksf_calendar_core` | library | `ksf_Calendar_Core` | Calendar business logic (companion to ksf_FA_Calendar) |
 | `ksfraser/ksf-f-campaign-builder` | library | `ksf_CampaignBuilder` | Visual drag-drop campaign builder for marketing automation |
 | `ksfraser/data-io` | library | `ksf_DataIO` | Data import/export library for CSV, Excel, JSON, XML |
 | `ksfraser/ksf_documents` | library | `ksf_Documents` | KSF Documents Library |
@@ -58,7 +60,9 @@ Packagist URL pattern: `https://packagist.org/packages/<package>`.
 | `ksfraser/ksf_emailmanager_ui` | project | `ksf_EmailManager_UI` | Standalone EmailManager_UI UI - includes UI, DB service, controller |
 | `ksfraser/ksf-estateplanning` | library | `ksf_EstatePlanning` | Business logic module for estate planning calculations |
 | `ksfraser/ksf_fa_api` | fa-module | `ksf_FA_API` | KSF FrontAccounting API - REST/SOAP + CRM Compatibility Layer (SuiteCRM, SugarCRM, vtiger, OrangeHRM, Odoo, Dolibarr, dotproject, OpenProject, LibreProject) |
+| `ksfraser/ksf_fa_api_core` | library | `ksf_FA_API_Core` | API business logic (companion to ksf_FA_API) |
 | `ksfraser/ksf_fa_assets` | library | `ksf_FA_Assets` | FA module: Equipment assets with depreciation tracking |
+| `ksfraser/ksf_fa_assets_core` | library | `ksf_FA_Assets_Core` | Assets business logic (companion to ksf_FA_Assets) |
 | `ksfraser/ksf-fa-attachments` | fa-module | `ksf_FA_Attachments` | Cross-module file attachment management for the ksf_FA ecosystem on FrontAccounting |
 | `ksfraser/ksf-fa-crm` | fa-module | `ksf_FA_CRM` | FrontAccounting CRM Adapter |
 | `ksfraser/ksf-fa-calendar` | fa-module | `ksf_FA_Calendar` | FA Calendar Module for FrontAccounting |
@@ -126,6 +130,7 @@ Packagist URL pattern: `https://packagist.org/packages/<package>`.
 | `ksfraser/ksf-marketing` | library | `ksf_Marketing` | Marketing module for KSF |
 | `ksfraser/ksf-modulebuilder` | library | `ksf_ModuleBuilder` | Module Builder for KSF |
 | `ksfraser/ksf-modules-dao` | library | `ksf_ModulesDAO` | Cross-platform DAO abstraction (DB, WordPress, SuiteCRM, FrontAccounting, CSV, XML) |
+| `ksfraser/ksf-common-db` | library | `ksf_common_db` | Transport-agnostic data dictionary + query builder. `DbConnectionInterface` contract with `FaDbAdapter` (native FA `db_*`) and `PdoDbAdapter` (standalone PDO) adapters, `TableDefinition`, `QueryBuilder`. |
 | `ksfraser/ksf-nextcloud` | library | `ksf_Nextcloud` | Nextcloud connector (users, files) + CalDAV calendar sync. Business-logic layer of the ksf_nextcloud / ksf_FA_nextcloud module pair. |
 | `ksfraser/ksf-notes` | php-package | `ksf_Notes` | Reusable Notes System - polymorphic notes for CRM entities |
 | `ksfraser/ksf_notes_ui` | project | `ksf_Notes_UI` | Standalone Notes_UI UI - includes UI, DB service, controller |
