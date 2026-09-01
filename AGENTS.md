@@ -1,199 +1,198 @@
-# ksf_FA_Common — Shared Platform Contracts
+# AGENTS.md — KSF FrontAccounting Architecture Notes
 
-> **DO NOT MODIFY** this file directly. Modules consuming these contracts should reference this document.
+Operational memory for the KSF FA infrastructure codebase. Files live under
+`~/Documents/ksf_Infrastructure/fa_modules/`. This doc captures cross-module
+architecture **decisions** and findings. Read this before designing or
+refactoring anything that spans modules.
 
-## Purpose
+> **Companion doc:** `AGENTS_ARCH.md` (co-located, hardlinked into each repo)
+> holds the shared module **conventions** and cross-repo engineering standards
+> (module layout, coding/testing standards, dev/deploy workflow, inter-module
+> hook protocols, security-area registry, FA DB gotchas). This file holds only
+> decisions.
 
-`ksf_FA_Common` provides platform-level shared contracts, utilities, and extension points that all KSF FrontAccounting modules depend on. It is **not** a business-logic module — it has no UI, no database tables, and no user-facing features.
+## Cross-module facts (at a glance)
 
-## Namespace Convention
+- **PHP 7.3 is the cross-module compatibility floor** (current prod runs 7.3 on
+  Fedora 30 until a web container is stood up; the FA container runtime is 7.4).
+  See `AGENTS_ARCH.md` §1.
+- **ksf_FA_Common is now a pure Composer/Packagist package** (v1.0.9), not an FA
+  module. It was gutted to a no-op module shell. Owning modules (RBAC, CRM,
+  Calendar, HRM, Assets) register/unregister their `ksf_contact_types` on
+  activate/deactivate via embedded `sql/retag_contact_types.sql`.
+- **Square**: composer.json `config.platform.php = 7.4.33` pinned (commit
+  `b0ef4da`) for the PHP 7.4 container; lock regeneration is blocked locally on
+  the private `ksfraser/import-staging` package.
+- **FA_ProductAttributes issue #52 (child not detected as read-only)** root cause
+  found: two parallel, un-unified parent-relationship mechanisms (see below).
 
-```
-KsfCommon\                         # Root namespace (NOT Ksfraser\FA\Common)
-KsfCommon\ContactType\             # Platform contact type definitions
-KsfCommon\ContactType\Contract\    # Contact type provider interfaces
-KsfCommon\Utils\                   # Utility classes
-```
+## The "generic data-dictionary + query-builder" direction (active design)
 
-## Contact Types — Platform-Level (NOT Calendar-Specific)
+The user wants a **generic, transport-agnostic** data-dictionary + SQL query
+builder package (suggested name `ksf_common_db`), NOT another DB class, and NOT
+in `ksf_FA_Common` (whose naming is FA-module-specific). Core requirement:
 
-Contact types are a **platform concept** managed by `ksf_FA_Common`.  They
-are consumed by Calendar (invitee types), RBAC (user/role types), HRM
-(employee/team types), Assets (resource types), and Projects.
+> An interface defines the SQL query commands. A translation layer maps them to
+> MySQL commands when outside FA, and to FA's procedural `db_*` functions when
+> inside FA, so the correct implementation can be DI'd.
 
-Types are persisted in the `ksf_contact_types` DB table (created by
-`ksf_FA_Common/sql/install.sql`).  Modules register their types **once**
-during `activate_extension()` — no runtime hook dispatch needed.
+Requirements/goals captured from discussion:
+- Want the **data dictionary + query builder** capabilities (from the legacy
+  `ksf_modules_common` `MODEL`/`fa_MODEL` framework).
+- **No third parallel DB-class abstraction** on top of what exists.
+- Lifecycle (pre/post CRUD) hooks should be able to tie into this system.
+- Package should be usable standalone (tests, CLI, other frameworks), not just
+  inside FA.
 
-### Activation order (CRITICAL)
+### The pattern ALREADY exists / is partially realized (critical to not rebuild)
+1. **RBAC's `DbAdapterInterface` + `FaDbAdapter` (now generalized)** — the exact
+   two-part interface→FA-translation pattern the user described: `fetchAssoc`, `fetchAll`,
+   `executeUpdate`, `lastInsertId`. `FaDbAdapter` substitutes `?` placeholders via
+   `mysqli_real_escape_string` (FA has NO prepared statements) and regex table prefixing.
+   This served as the proof of concept and has been **genericized into the
+   `ksfraser/ksf-common-db` package** (`ksfraser\CommonDb\Contract\DbConnectionInterface` /
+   `ksfraser\CommonDb\Adapter\FaDbAdapter`); the RBAC-local copies were deleted. See that
+   package's `APPENDIX.md` for the migration.
+2. **Legacy `ksf_modules_common` (procedural, older)** — the actual data-dictionary +
+   query-builder the user remembers:
+   - `class.MODEL.php` — `fields_array` + `table_details['tablename']`/`['primarykey']`
+     dictionary; clause builders `buildSelect/From/Where/Join/GroupBy/Having/OrderBy/Limit`
+     assembled by `buildSelectQuery()`; CRUD `select_row`, `select_table`,
+     `insert_table`, `update_table`, `delete_table`, `ReplaceQuery`, `create_table`,
+     `alter_table`; `define_table()` derives tablename from class name + company prefix.
+   - `class.fa_MODEL.php` — FA subclass; sets `company_prefix = TB_PREF`.
+   - `class.eventloop.php` — Observer pattern event dispatcher: `ObserverRegister`,
+     `ObserverNotify` (with `'**'` wildcard = all), subscribers implement `notified()`.
+   - **CAVEAT**: the `eventloop` Observer hooks are wired only for `NOTIFY_INIT_TABLES`
+     → `create_table` and logging. They are NOT wired into `insert_table`/`update_table`/
+     `delete_table` as pre/post CRUD points. The `tell_eventloop(..., "NOTIFY_LOG_*", ...)`
+     calls are largely logging noise.
+3. **Modern ksf_FA_Common traits (OOP, current recommendation for hooks)**
+   - `src/Traits/WorkflowHooksTrait.php` — SuiteCRM-style lifecycle hooks. Register a
+     record type → hook prefix via `registerWorkflowType($recordType, $hookPrefix)`.
+     `fireWorkflowHook()` builds `{prefix}_{hookKey}` and calls `hook_invoke_all(...)`.
+     Hook keys: `before_save`, `after_save`, `before_delete`, `after_delete`, `new`,
+     `edited`, `linked`, `unlinked`. Convenience dispatchers + `fireWorkflowHooks()`
+     runs the full ordered sequence.
+   - `src/Traits/CrudOperationsTrait.php` — `createRecord()` / `deleteRecord()` wrappers
+     that fire pre-save → create → new/edited → post-save (and pre-delete → delete →
+     post-delete), delegating the actual DB work to overridable `*Internal()` methods.
+   - Both live in `ksfraser\FrontAccounting\Common\Traits\` (namespace is FA-flavored).
+   - Adoption is currently minimal: ksf_FA_Common's own unit tests +
+     `ksf_FA_HRM/hooks.php`. Not yet rolled out module-wide.
 
-`ksf_FA_Common` **must** be activated first.  All other modules depend on
-its table definitions and base types:
+### Naming observation
+The `registerWorkflowType($recordType, $hookPrefix)` + `{prefix}_{operation}` scheme
+already achieves what the user proposed as "DB class reads `$table_name` to build
+pre/post hook name." `$table_name` should map to a hook **prefix**, not be the literal
+hook name. Per-table hooks use `hook_invoke_all` (module-oriented dispatcher from
+`includes/hooks.inc`) — consistent with FA, zero new infra. If literal table-derived
+names are wanted, add a small table→prefix mapper, don't build a new dispatcher.
 
-1. **ksf_FA_Common**     (creates `ksf_contact_types` table + 4 base types)
-2. **ksf_RBAC**          (registers `fa_user` as RBAC account type)
-3. **ksf_HRM**           (registers `employee`, `team` types)
-4. **ksf_FA_Assets**     (registers `resource` refinements)
-5. **ksf_ProjectMgmt**   (registers project-contact types)
-6. **ksf_CRM**           (registers `crm_contact` refinements)
-7. All other modules
+### PDO question (decided: YES, PDO is the standalone impl; FA uses its own adapter)
+FA's DB layer is mysqli-based, NOT PDO (`includes/db/connect_db_mysqli.inc` uses
+`mysqli_connect/query/insert_id/errno/fetch_row`; procedural `db_query`/`db_escape`/
+`db_fetch_assoc`/`db_insert_id` wrappers; FA has NO prepared statements).
 
-### How modules register their contact types
+Design: **make PDO the consumer contract of the interface, not the transport.** Two
+implementations of one `DbConnectionInterface` (PDO-style ops: query, executeWithParams,
+fetchAll, fetchAssoc, insertId, quote, beginTransaction/commit/rollBack):
+- `PdoDbAdapter` (standalone: tests/CLI/other frameworks) — nearly a 1:1 PDO wrapper,
+  real prepared statements, multi-driver.
+- `FaDbAdapter` (inside FA) — maps each method to FA `db_*`/mysqli calls, resolves
+  `?`/`:name` placeholders to escaped literals (FA has no prepared statements), exactly
+  like the FA adapter in `ksf-common-db` (`mysqli_real_escape_string` binding + regex
+  prefixing).
 
-Every module that provides contact types **must** register them in
-`activate_extension()` and clean up in `deactivate_extension()`:
+**HARD RULE (user directive): FA modules MUST use native `db_*` calls at runtime.**
+PDO is ONLY for the standalone/portable side (tests, CLI, non-FA embedding). The FA
+adapter is the single, mandatory implementation inside FA and must delegate every
+operation to FA's procedural `db_query`/`db_escape`/`db_fetch_assoc`/`db_insert_id`/
+`db_num_rows`/`db_error` etc. — never a PDO handle, never raw mysqli. PDO is the
+portable *contract shape*, not a runtime transport for FA. (Note: PDO is an optional
+for the FA side: the only reason to depend on it at all is standalone usage; the FA
+adapter itself needs no PDO.)
 
-```php
-// In ksf_<Module>/hooks.php
-use KsfCommon\ContactType\ContactType;
-use KsfCommon\ContactType\ContactTypeRegistry;
+PDO and FA never meet; they are alternative DI implementations of a shared contract.
+This satisfies the user's requirement: "interface that translates SQL to MySQL outside
+FA but `db_*` inside FA so the right classes can be DI'd." This is realized by the
+`ksf-common-db` package's `DbConnectionInterface` + `FaDbAdapter`/`PdoDbAdapter`.
 
-class hooks_ksf_<Module> extends hooks {
-    function activate_extension($company, $check_only=true) {
-        // ... existing setup (composer, schema, etc.) ...
+### ksf_common_db package — implemented
+The `ksfraser/ksf-common-db` package (namespace `ksfraser\CommonDb`) exists at
+`~/Documents/ksf_common_db`, is published on Packagist (`v1.0.0`), and RBAC has
+been migrated onto it. **Repo-specific implementation/packaging/migration/gotcha
+notes live in that repo's `APPENDIX.md`** — see there for structure, consumers'
+dependency convention, the RBAC migration, and the implementation gotchas. This
+section only records the shared design decisions.
 
-        ContactTypeRegistry::registerTypes([
-            new ContactType(
-                'employee',          // Machine name (lowercase, underscore)
-                'Employee',          // Human-readable label
-                'ksf_HRM',           // Module identifier
-                'HRM employee record with login capability'
-            ),
-        ]);
+Structure (high level):
+- `src/Contract/DbConnectionInterface.php` — PDO-shaped contract: `fetchAssoc`,
+  `fetchAll`, `fetchScalar`, `executeUpdate`, `lastInsertId`, `quote`, `beginTransaction`,
+  `commit`, `rollBack`. Accepts `?` (positional) or `:name` (named) placeholders.
+- `src/Adapter/FaDbAdapter.php` — FA runtime adapter; native `db_*` only.
+- `src/Adapter/PdoDbAdapter.php` — native PDO + prepared statements (NOT for FA runtime).
+- `src/Dictionary/TableDefinition.php` — data dictionary + CREATE/INSERT/UPDATE/DELETE SQL.
+- `src/Query/QueryBuilder.php` — fluent parameterized SELECT builder.
 
-        return true;
-    }
+NEXT STEPS (cross-module): port other modules' DAOs onto `DbConnectionInterface` +
+`TableDefinition`/`QueryBuilder`, then wire the pre/post workflow hooks
+(`WorkflowHooksTrait`/`CrudOperationsTrait` from ksf_FA_Common) onto the DAO layer.
 
-    function deactivate_extension($company, $check_only=true) {
-        ContactTypeRegistry::unregisterModule('ksf_HRM');
-        return true;
-    }
-}
-```
+## FA core hook system (reference)
 
-### Registration lifecycle
+`includes/hooks.inc`:
+- `hook_invoke($ext, $method, &$data, $opts)` / `hook_invoke_all($method, &$data, $opts)`
+  / `hook_invoke_first` / `hook_invoke_last` — dispatch to `$Hooks` extension objects.
+- Transaction-level DB hooks exist: `hook_db_prewrite`, `hook_db_postwrite`,
+  `hook_db_prevoid` → `hook_invoke_all('db_prewrite'|'db_postwrite'|'db_prevoid', $cart,
+  $type)`. These are CART/transaction scoped (sales orders, invoices, etc.), NOT
+  per-row CRUD. Per-row CRUD hooks are not provided by core; they come from the
+  traits/adapters above.
 
-```
-Module activation   →  registerTypes()    →  INSERT IGNORE INTO ksf_contact_types
-Module deactivation →  unregisterModule() →  DELETE FROM ksf_contact_types WHERE module = ?
-```
+## FA_ProductAttributes issue #52 root cause (verified)
 
-`registerTypes()` uses `INSERT IGNORE` — re-activating a module does not
-error or overwrite existing types.  **First activation wins** (modules
-activated earlier take priority).
+Two parallel, un-unified parent-relationship mechanisms:
 
-### Built-in default types
+| Concern | `product_hierarchy` (via `ProductAttributesDao`) | `product_attribute_assignments.parent_stock_id` (via `VariationsDao`) |
+|---|---|---|
+| Writes | `setProductParent($child,$parent)` (INSERT…ON DUP UPD / DELETE) | `setParentRelationship()` (called by `CreateChildAction`) AND `addAssignment(...,$parentStockId)` |
+| Reads | `getProductParent()` — **used by `VariationsTab` for `$isChild` detection** | `getProductVariations()`, `isVariation()` |
+| Populated on CreateChildAction? | **NO** — nothing calls it | **YES** |
 
-Seeded by `ksf_FA_Common` itself during its activation:
+- `VariationsDao::setParentRelationship()` (VariationsDao.php:334) writes
+  `product_attribute_assignments.parent_stock_id`.
+- `ProductAttributesDao::setProductParent()`/`getProductParent()`
+  (ProductAttributesDao.php:392/416) write/read `product_hierarchy`.
+- `CreateChildAction::handle()` calls `variationsDao->setParentRelationship($childId,
+  $stockId)` (CreateChildAction.php:88) but NEVER `setProductParent()`.
+- `VariationsTab::renderTabContent()` sets `$isChild = !empty($this->dao->getProductParent($stockId))`
+  (VariationsTab.php, ~line 51-54) and renders read-only + hides buttons when child.
+- Net: generated children (`auto-gas-L-11-36-Ind` etc.) are registered only in
+  `product_attribute_assignments`, so `product_hierarchy` is empty for them →
+  `getProductParent()` returns null → `$isChild` false → read-only protection never
+  engages → issue #52/#45 reproduce.
+- `product_hierarchy` DOES get rows when someone manually sets a parent via the
+  Product Types UI (`UpdateProductTypesAction`, `ProductAttributesTabController`).
 
-| Name | Label | Owner | Description |
-|------|-------|-------|-------------|
-| `fa_user` | FA User | ksf_FA_Common | FrontAccounting RBAC user account |
-| `crm_contact` | CRM Contact | ksf_FA_Common | Customer or lead managed by the CRM module |
-| `resource` | Resource | ksf_FA_Common | Shared resource (room, equipment, vehicle) |
-| `ad_hoc` | Ad-hoc | ksf_FA_Common | External invitee without a system record |
+Fix implications: the create-child path must also write `product_hierarchy` (call
+`setProductParent`), OR the tab's child detection must fall back to
+`product_attribute_assignments.parent_stock_id` / `isVariation()`.
 
-Each active module may override these defaults by registering the same name
-during its activation.  Because `ksf_FA_Common` activates first, its entries
-are created first; later modules' `INSERT IGNORE` does not overwrite them.
-To override, a module must explicitly delete and re-insert.
+## SQL prefix / install conventions (from earlier work)
 
-### Consuming the registry
+- SQL files use a hardcoded `0_` prefix — FA `db_import` does NOT resolve
+  `@TB_PREF@`. PHP code uses the `TB_PREF` constant. Documented in
+  `ksf_FA_Common/MODULE_DIRECTORY.md` §Table Prefix Convention.
+- Assets module SQL convention: `update_databases()` paths are relative to `sql/`
+  (uses `'install.sql'`, not `'sql/install.sql'`); others prefix with `sql/`.
+- Retag/contact-type ownership SQL lives inside each owning module's `sql/`
+  (`retag_contact_types.sql`), idempotent, wired into `activate_extension()`'s
+  `$updates`. Never in an external checklist.
 
-```php
-use KsfCommon\ContactType\ContactTypeRegistry;
+## Cross-module contracts principle
 
-// Get all registered type names (for validation)
-$validTypes = ContactTypeRegistry::getTypeNames();
-
-// Get a single type definition
-$type = ContactTypeRegistry::getType('fa_user');
-echo $type->getLabel(); // "FA User"
-
-// Check if a type is valid
-if (ContactTypeRegistry::isValidType($contactType)) { ... }
-
-// Get full definitions (for API responses)
-$definitions = ContactTypeRegistry::getTypeDefinitions();
-```
-
-Runtime fallback: if the DB table doesn't exist or is empty, the Registry
-returns the four built-in defaults from memory — no consuming module ever
-breaks.
-
-## Dependency Requirements
-
-All FA adapter modules that consume `ksf_FA_Common` contracts **must**
-include this dependency:
-
-```json
-{
-    "require": {
-        "ksfraser/ksf-fa-common": "*"
-    },
-    "repositories": [
-        { "type": "path", "url": "../ksf_FA_Common" }
-    ]
-}
-```
-
-And in their `hooks.php`, load the autoloader **before** any code that
-references `KsfCommon\` classes:
-
-```php
-$autoload = dirname(__FILE__) . '/vendor/autoload.php';
-if (file_exists($autoload)) {
-    require_once $autoload;
-}
-```
-
-All `ksf_FA_<Module>` modules **must** depend on `ksf_FA_Common`.  This is
-enforced by convention: `ksf_FA_Common` is the platform foundation and must
-be activated first.
-
-## Related Shared Packages
-
-| Package | Namespace | Purpose |
-|---------|-----------|---------|
-| `ksfraser/exceptions` | `Ksfraser\Exceptions\` | Shared exception hierarchy |
-| `ksfraser/traits` | `Ksfraser\Traits\` | Reusable PHP traits |
-| `ksfraser/ksf-modulesdao` | `Ksfraser\ModulesDAO\` | Module data access objects |
-| `ksf_RBAC` / `ksf_FA_RBAC` | — | User → crm_contacts sync (type='fa_user') |
-
-## Module Registration Checklist
-
-When a new module needs calendar contact types:
-
-- [ ] Add `ksfraser/ksf-fa-common` to `composer.json` (path repository)
-- [ ] Load Composer autoloader in `hooks.php`
-- [ ] Implement `CalendarContactTypeProviderInterface` (optional, for DI containers)
-- [ ] Call `CalendarContactTypeRegistry::registerTypes([...])` in `activate_extension()`
-- [ ] Call `CalendarContactTypeRegistry::unregisterModule('ksf_<Module>')` in `deactivate_extension()`
-- [ ] Add note in module's `AGENTS.local.md` referencing `ksf_FA_Common`
-
-## Development Workflow
-
-All development is done in the **devel tree** (`~/Documents/ksf_FA_Common`). Do **not** edit files in the UAT bind point directly.
-
-### Workflow Steps
-1. **Develop** in this repo (feature branches preferred)
-2. **Test**: run repo-appropriate tests
-3. **Lint**: `php -l` on modified PHP files (no syntax errors)
-4. **Commit** and **Push** branch to GitHub
-5. **Merge** to `master` when ready
-6. **Push** `master` to GitHub
-7. **Deploy** to UAT by pulling in the Infrastructure bind point:
-
-   ```
-   cd ~/ksf_Infrastructure/fa_modules/ksf_FA_Common
-   git stash -u
-   git pull origin master
-   git stash pop
-   ```
-
-### UAT Bind Point
-| Path | Purpose |
-|------|---------|
-| `~/Documents/ksf_FA_Common` | Devel tree — all development, testing, commits |
-| `~/ksf_Infrastructure/fa_modules/ksf_FA_Common` | UAT bind point — deployment target, integration testing (if mirrored) |
-
+- Any ksf module must be standalone; class availability must never be gated on
+  another module's activation state.
+- Cross-module contracts/classes live in a Packagist package (e.g. ksf_FA_Common /
+  future ksf_common_db), NOT in a module dir.
