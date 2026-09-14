@@ -140,6 +140,17 @@ output.
 
 - `_init/config` file is **gzip-compressed** `Key: Value` lines (`Name:`, `Version:`,
   `Description:`), version like `2.4.3-<build>`.
+- **`_init/config` is shipped in the module source and committed** (siblings keep it
+  tracked, e.g. `ksf_FA_HRM` commit `chore(config): bump module version to 2.4.3-1`).
+  The `Version:` FA displays and gates at activation is the installed module's
+  `_init/config`; `admin/inst_module.php` refuses to activate when
+  `check_src_ext_version()` (`includes/packages.inc`) finds the extension's numeric
+  prefix below FA's `$src_version` (major.minor). Set `Version: 2.4.x-<build>` (e.g.
+  `2.4.3-1`) and keep the module's own release in a separate field (`Build: 1.1.0`).
+  Change it **in source** (`git add _init/config`) and let deployment + the FA
+  *Install/Activate Extensions* UI reinstall refresh the running copy — never
+  hand-edit the gzip on a live install, and never edit the version fields in
+  `installed_extensions.php`.
 - **The `Version:` in `_init/config` must match the major version of the FA
   platform** the module targets (e.g. `2.4.x` for FrontAccounting 2.4). FA uses
   this to gate module compatibility at install — a mismatched major (e.g. `3.x`

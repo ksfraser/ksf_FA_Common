@@ -9,7 +9,7 @@
 |-----------------|------------------------------------------------------------|
 | Status          | Current state + unified-tabs roadmap (v2.4 concept)        |
 | Canonical copy  | `/home/kevin/Documents/APP_TAB_ARCHITECTURE.md`            |
-| Last updated    | 2026-08-28                                                 |
+| Last updated    | 2026-09-03                                                 |
 
 ---
 
@@ -167,6 +167,66 @@ Concrete copy/paste bugs found while distilling the template (see §7):
 | Entities / DTOs + repositories (business logic pattern)     | `ksfraser/staging-dto`        |
 | FA function mocks (unit tests)                              | `ksfraser/famock`             |
 | Validation traits/helpers (PHP 7.3+)                        | `ksfraser/validation`         |
+
+## 10. Form container constraint for tab content (verified 2026-09-03)
+
+**Finding:** A module tab's content is rendered **inside** the host page's single
+`<form>`, so a tab cannot emit its own `<form>` without creating invalid nested
+forms.
+
+Empirical probe against the live FA container (`items.php`, Variations tab):
+
+| Probe                                            | Result |
+|--------------------------------------------------|--------|
+| `<form>` count on the whole items page           | `1` (the one opened by `start_form(true)` at `items.php:559`) |
+| Tab panel `#_tabs_div` a descendant of the form? | `true` |
+| Action buttons resolve to which form?            | `idx:0` (the page form) |
+| `gcInSameFormAsTabsSel`                           | `true` — buttons share the host form with the hidden `_tabs_sel` |
+| Nested `<form>` already present inside the panel?| `0` |
+
+`items.php:559` (`start_form(true)`) opens the form; `tabbed_content_start()` at
+`items.php:611` then renders all tab panels (including the module's tab content,
+emitted via `item_display_tab_content` inside the `switch` at 613-658) **inside**
+that form. `end_form()` only runs at `items.php:670`, after the tab panels.
+
+**Consequence for HTML:** `<form>` cannot be nested. Browsers ignore the inner
+`<form>` start tag (or auto-close the outer one), silently dropping the inner
+form's fields and breaking the outer form's data. This is exactly the class of
+bug #15/#16. The Variations tab therefore must NOT render its own `<form>` tag —
+enforced by the regression test `testRenderDoesNotContainFormTag`.
+
+**Working approach (option A, adopted):** stay inside the host form and drive
+tab action buttons through FA's `ajaxsubmit`/`JsHttpRequest` path — the reusable
+SRP renderers `Ksfraser\Frontaccounting\HTML\MasterSummaryTable`,
+`FormFooter`, `TabContext` already emit `ajaxsubmit` submit buttons
++ `formnovalidate` + hidden `record_id` / `_tabs_sel`. No nested form, no broken
+native submit. `handlePostActions()` reads `$_POST['_tabs_sel']` (the host form
+still carries it) plus the button name.
+
+### 10.1 Considered alternative — the `</form><form>` "second form" trick
+
+Idea: emit an explicit `</form>` then a fresh `<form>` so the module's tab content
+closes out of the host form and opens its own, producing a second (non-nested)
+form.
+
+**Verdict: rejected / fragile, do not adopt.**
+
+- HTML5 parsing treats an *implied* `</form>` (a `</form>` without a matching open
+  tag in a parser context) as a parse-structure fixup, so the exact behaviour is
+  order- and browser-dependent and does not reliably produce the intended result.
+- Even when it "works" as a second sibling form, the host form's fields that render
+  **after** the tab panel — e.g. `hidden('fixed_asset', ...)` at `items.php:665`,
+  the `br()`/`div_end()` at 660-663, and any post-tab content — would no longer be
+  associated with the host form. They become orphans, silently breaking the item
+  page's own form/field gating. It is safe only if the module tab is guaranteed to
+  be the **last** element before `end_form()`, which is not the case here.
+- It reintroduces the #15/#16 fragility this test suite exists to prevent.
+
+If a module ever needs a **true** self-contained form with its own `action`
+independent of the host form, the host must be structured so the tab panel lives
+**outside** the host form (a host-side restructure of `items.php`, not a module
+string-emit) — or the module should use a dedicated standalone page/endpoint
+instead of a tab panel.
 
 ---
 
