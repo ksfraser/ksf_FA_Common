@@ -45,7 +45,7 @@
 |---------|-----|-----------|---------|
 | `ksfraser/exceptions` | `Exceptions/` | `Ksfraser\Exceptions\` | Centralized exception library (Domain, Utility, CRM, Calendar, PM). 24 dependents. |
 | `ksfraser/famock` | `famock/` | `Ksfraser\FAMock\` | FA function mocks for unit testing outside live FA. 20 dependents. |
-| `ksfraser/ksf-fa-common` | `ksf_FA_Common/` | `ksfraser\FrontAccounting\Common\` | Shared FA platform: ContactTypeRegistry, SchemaInstaller, Traits (WorkflowHooks, CrudOperations, FlashMessage, CalendarRegistration), plus `FileStorageService` and a `BaseHooks` base class (referenced by ksf_FA_Attachments). **Activate first.** 14 dependents. |
+| `ksfraser/ksf-fa-common` | `ksf_FA_Common/` | `ksfraser\FrontAccounting\Common\` | Shared FA platform as a **pure Composer/Packagist package** (v1.0.10, no FA extension — hooks.php deleted). ContactTypeRegistry, SchemaInstaller, Traits (WorkflowHooks, CrudOperations, FlashMessage, CalendarRegistration), plus `FileStorageService` and a `BaseHooks` base class (referenced by ksf_FA_Attachments), `ItemEvents\ItemEventPublisher`, `ExtensionRegistry`, `JobQueue`, `PreferenceRepository`. Loaded lazily via Composer autoload; **not** activated as an extension. |
 | `ksfraser/traits` | `Traits/` | `Ksfraser\Traits\` | Reusable traits: CrudEventEmitter, EntityState, EventEmitter, HookQueryProvider, InlineTabRenderer, Validatable, Timestamp, PSR-3 FileLogger. 13 dependents. |
 | `ksfraser/ksf-modules-dao` | `ksf_ModulesDAO/` | `Ksfraser\ModulesDAO\` | Cross-platform DAO: RecordStoreInterface, DbAdapterInterface, KeyValueStoreInterface. Adapters for FA, PDO, WordPress, SuiteCRM. 13 dependents. |
 | `ksfraser/database` | `Database/` | `Ksfraser\Database\` | Database helper utilities (DbManager static wrapper). 12 dependents. |
@@ -67,10 +67,6 @@
 | `ksfraser/fa-classes` | `ksf_FA_Classes/` | `FrontAccounting\` | FA table classes and data-access helpers |
 | `ksfraser/ksf-estate` | `ksf_estate/` | `Ksfraser\Estate\` | Estate planning calculations |
 | `ksfraser/ksf_insurance` | `ksf_insurance/` | `Ksfraser\Insurance\` | Insurance calculations |
-| `ksfraser/ksf_fa_api_core` | `ksf_FA_API_Core/` | `Ksfraser\ApiCore\` | API business logic (companion to ksf_FA_API) |
-| `ksfraser/ksf_fa_assets_core` | `ksf_FA_Assets_Core/` | `Ksfraser\FA_Assets\` | Assets business logic (companion to ksf_FA_Assets) |
-| `ksfraser/ksf_asteriskpbx_core` | `ksf_AsteriskPBX_Core/` | `Ksfraser\AsteriskPBX\` | Asterisk PBX business logic (companion to ksf_FA_AsteriskPBX) |
-| `ksfraser/ksf_calendar_core` | `ksf_Calendar_Core/` | `Ksfraser\Calendar\` | Calendar business logic (companion to ksf_FA_Calendar) |
 | `ksfraser/fa-hooks` | *(vendor)* | `Ksfraser\FA_Hooks\` | Lightweight FA hook system |
 | `ksfraser/contact-dto` | *(vendor)* | `Ksfraser\Contact\` | Shared Contact DTO |
 
@@ -102,7 +98,7 @@ HRM (`ksf_FA_HRM`) is an orchestrator. These sub-modules answer hooks:
 
 | Module | Version | Purpose | Tables |
 |--------|---------|---------|--------|
-| **ksf_FA_Common** | — | Platform foundation. **Activate first.** ContactTypeRegistry, SchemaInstaller. | `0_ksf_contact_types`, `0_fa_job_queue`, `0_ksf_item_event_watermark`, `0_ksf_item_sync_state`, `0_ksf_notifications` |
+| **ksf_FA_Common** | — | Platform foundation library (pure Composer package, not activated). ContactTypeRegistry, SchemaInstaller. Creates shared tables on demand: `0_ksf_contact_types`, `0_fa_job_queue`, `0_ksf_item_event_watermark`, `0_ksf_item_sync_state`, `0_ksf_notifications`. | on-demand shared tables |
 | **ksf_FA_Classes** | — | Base class library (no hooks.php) | None |
 | **ksf_FA_RBAC** | 1.0.0 | Role-based access control. Bridges `ksfraser/rbac` to FA. | `0_rbac_teams`, `0_rbac_team_members`, `0_rbac_record_access`, `0_rbac_audit_log` |
 | **ksf_FA_GPG** | 2.4.19-0 | GPG signing/encryption. Key management UI. | `0_ksf_gpg_keys`, `0_ksf_gpg_operations`, `0_ksf_gpg_files`, `0_ksf_gpg_settings`, `0_ksf_gpg_team_keys` |
@@ -195,6 +191,17 @@ HRM (`ksf_FA_HRM`) is an orchestrator. These sub-modules answer hooks:
 | **ksf_FA_recommendation** | — | Recommendation engine (scaffold) | None |
 | **ksf_FA_retirement** | — | Retirement planning (scaffold) | None |
 | **ksf_FA_SegFunds** | — | Segregated funds (legacy, no hooks) | None |
+| **ksf_FA_SupportTickets** | — | Support tickets/helpdesk | Schema placeholder |
+| **ksf_FA_Quality** | — | Quality/8D issue tracking | `0_ksf_quality_8d*` |
+| **ksf_FA_StockReservations** | — | Stock reservation on SO | `0_ksf_stock_reservations` |
+| **ksf_FA_StockTurnover** | — | Stock turnover metrics | `0_ksf_stock_turnover_metrics`, `0_ksf_stock_turnover_cron` |
+| **ksf_FA_StockNegatives** | — | Negative stock prevention | Schema placeholder |
+| **ksf_FA_ManufacturerConsolidation** | — | Manufacturer consolidation suggestions | `0_ksf_consolidation_*`, `0_ksf_supplier_moq_rules` |
+| **ksf_FA_PurchaseOrderTracking** | — | PO tracking metrics, GRN/PO hooks | `0_ksf_po_*` |
+| **ksf_FA_Rep_Audit** | — | Rep audit report (`reporting/`) | None |
+| **ksf_FA_Rep_Customer** | — | Rep customer report (`reporting/`) | None |
+| **ksf_FA_Rep_Operations** | — | Rep operations report (`reporting/`) | None |
+| **ksf_fa_downloader** | — | FA module download/fetch tool | `01_fa_download_targets`, `02_fa_downloads` |
 
 ---
 
@@ -319,14 +326,17 @@ HRM (`ksf_FA_HRM`) is an orchestrator. These sub-modules answer hooks:
 ### Table Prefix Convention
 - **New modules**: `0_` prefix (e.g., `0_hrm_departments`)
 - **Legacy modules**: bare names (e.g., `fa_campaigns`)
-- **PHP code**: always use the `TB_PREF` constant, never hardcode `0_`
-- **SQL files** (install.sql, upgrade SQLs): use hardcoded `0_` prefix — FA's `db_import()` / `update_databases()` does not resolve placeholders in SQL files. Do NOT use `@TB_PREF@` or `{TB_PREF}` in SQL files.
+- **PHP code**: use the `TB_PREF` constant, never hardcode `0_`.
+- **SQL files (install.sql / uninstall.sql / upgrades)**: use **hardcoded `0_`**
+  literal — FA's `db_import()` / `update_databases()` replaces ONLY `0_` → `TB_PREF`
+  and does NOT resolve `@TB_PREF@` or `{TB_PREF}`. Never use those placeholders in
+  SQL files.
 
 ### Shared Tables
-- `0_ksf_contact_types` — Contact type registry (schema owned by ksf-fa-common package, created on demand via `ensureTable()`)
-- `0_ksf_notifications` — Shared notification outbox (schema on demand)
-- `0_fa_job_queue` — Background job queue (schema on demand)
-- `0_ksf_item_sync_state` / `0_ksf_item_event_watermark` — Item event watermark (schema on demand)
+- `0_ksf_contact_types` — Contact type registry (ksf_FA_Common; created on demand)
+- `0_fa_job_queue` — Job queue (ksf_FA_Common; created on demand)
+- `0_ksf_notifications` — Notifications (ksf_FA_Common; created on demand)
+- `0_ksf_item_event_watermark` / `0_ksf_item_sync_state` — Item sync watermark + state (ksf_FA_Common; created on demand)
 - `0_staging_*` — Unified staging pipeline (ksf_FA_ImportStagingProcessing)
 - `0_rbac_*` — RBAC teams and access (ksf_FA_RBAC)
 
@@ -353,4 +363,4 @@ HRM (`ksf_FA_HRM`) is an orchestrator. These sub-modules answer hooks:
 
 ---
 
-*Last updated: 2026-09-01*
+*Last updated: 2026-09-14*

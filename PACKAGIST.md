@@ -8,8 +8,8 @@
 | Field          | Value |
 |----------------|-------|
 | Canonical copy | `/home/kevin/Documents/PACKAGIST.md` |
-| Packages listed | 142 |
-| Last generated | 2026-08-28 |
+| Packages listed | 153 |
+| Last generated | 2026-09-14 |
 
 Packagist URL pattern: `https://packagist.org/packages/<package>`.
 
@@ -32,7 +32,7 @@ Packagist URL pattern: `https://packagist.org/packages/<package>`.
 | RBAC library | `ksfraser/rbac` |
 | Calendar (aggregates PM/CRM/HRM) | `ksfraser/ksf-calendar` |
 
-## Full catalogue (146 packages)
+## Full catalogue (153 packages)
 
 | Package | Type | Source repo | Description |
 |---------|------|-------------|-------------|
@@ -42,17 +42,15 @@ Packagist URL pattern: `https://packagist.org/packages/<package>`.
 | `ksfraser/fa-product-attributes-core` | library | `FA_ProductAttributes_Core` | Business logic for FA Product Attributes - DAOs, Services, and domain models |
 | `ksfraser/fa-product-attributes-variations` | library | `FA_ProductAttributes_Variations` | Product Variations plugin for FA_ProductAttributes |
 | `ksfraser/traits` | library | `Traits` | A collection of reusable PHP traits for ksfraser projects |
-| `ksfraser/validation` | library | `Validation` | Small validation helpers and traits (PHP 7.3+) for KS Fraser modules migration. |
+| `ksfraser/validation` | library | `Validation` (`validation` also carries the same name) | Small validation helpers and traits (PHP 7.3+) for KS Fraser modules migration. |
 | `ksfraser/famock` | library | `famock` | FrontAccounting function mocks for unit testing |
 | `ksfraser/ksf_asteriskpbx` | library | `ksf_AsteriskPBX` | KSF Asterisk PBX Integration - SMS, Click-to-call, Call Popup, ANI Matching |
-| `ksfraser/ksf_asteriskpbx_core` | library | `ksf_AsteriskPBX_Core` | Asterisk PBX business logic (companion to ksf_FA_AsteriskPBX) |
 | `ksfraser/ksf-crm` | library | `ksf_CRM` | CRM Business Logic Library - Framework-agnostic domain entities, services, and events |
 | `ksfraser/gedcom` | library | `ksf_CRM_GEDCOM` | GEDCOM 5.5 parsing and generation library - Framework-agnostic import/export business logic |
 | `ksfraser/ksf_crm_ui` | project | `ksf_CRM_UI` | Standalone CRM_UI UI - includes UI, DB service, controller |
 | `ksfraser/ksf-calendar` | library | `ksf_Calendar` | Unified calendar system - aggregates PM tasks, CRM activities, HRM time tracking, client dates. iCal import/export, multi-calendar filter, FullCalendar.js ready. Replicates/replaces SuiteCRM, vTiger, WebCalendar calendar views. |
 | `ksfraser/ksf-calendar-ui` | library | `ksf_Calendar_UI` | Standalone Calendar UI - FullCalendar.js frontend for ksf_Calendar. Multiple calendar views, drag-and-drop, iCal sync. |
-| `ksfraser/ksf_calendar_core` | library | `ksf_Calendar_Core` | Calendar business logic (companion to ksf_FA_Calendar) |
-| `ksfraser/ksf-f-campaign-builder` | library | `ksf_CampaignBuilder` | Visual drag-drop campaign builder for marketing automation |
+| `ksfraser/ksf-f-campaign-builder` | library | `ksf_CampaignBuilder` (`ksf_FA_CampaignBuilder` also carries this package name) | Visual drag-drop campaign builder for marketing automation |
 | `ksfraser/data-io` | library | `ksf_DataIO` | Data import/export library for CSV, Excel, JSON, XML |
 | `ksfraser/ksf_documents` | library | `ksf_Documents` | KSF Documents Library |
 | `ksfraser/ksf-ess` | project | `ksf_ESS` | Employee Self-Service Portal |
@@ -60,13 +58,10 @@ Packagist URL pattern: `https://packagist.org/packages/<package>`.
 | `ksfraser/ksf_emailmanager_ui` | project | `ksf_EmailManager_UI` | Standalone EmailManager_UI UI - includes UI, DB service, controller |
 | `ksfraser/ksf-estateplanning` | library | `ksf_EstatePlanning` | Business logic module for estate planning calculations |
 | `ksfraser/ksf_fa_api` | fa-module | `ksf_FA_API` | KSF FrontAccounting API - REST/SOAP + CRM Compatibility Layer (SuiteCRM, SugarCRM, vtiger, OrangeHRM, Odoo, Dolibarr, dotproject, OpenProject, LibreProject) |
-| `ksfraser/ksf_fa_api_core` | library | `ksf_FA_API_Core` | API business logic (companion to ksf_FA_API) |
 | `ksfraser/ksf_fa_assets` | library | `ksf_FA_Assets` | FA module: Equipment assets with depreciation tracking |
-| `ksfraser/ksf_fa_assets_core` | library | `ksf_FA_Assets_Core` | Assets business logic (companion to ksf_FA_Assets) |
 | `ksfraser/ksf-fa-attachments` | fa-module | `ksf_FA_Attachments` | Cross-module file attachment management for the ksf_FA ecosystem on FrontAccounting |
 | `ksfraser/ksf-fa-crm` | fa-module | `ksf_FA_CRM` | FrontAccounting CRM Adapter |
 | `ksfraser/ksf-fa-calendar` | fa-module | `ksf_FA_Calendar` | FA Calendar Module for FrontAccounting |
-| `ksfraser/ksf-f-campaign-builder` | library | `ksf_FA_CampaignBuilder` | Visual drag-drop campaign builder for marketing automation |
 | `ksfraser/fa-classes` | library | `ksf_FA_Classes` | FrontAccounting-specific table classes and related data access helpers. |
 | `ksfraser/ksf-fa-common` | library | `ksf_FA_Common` | Shared FrontAccounting platform utilities, contracts, and extension points for the KSF ecosystem |
 | `ksfraser/ksf_fa_coupons` | frontaccounting-module | `ksf_FA_Coupons` | Coupon Management for FrontAccounting (CRM + Sales) |
@@ -182,7 +177,18 @@ Packagist URL pattern: `https://packagist.org/packages/<package>`.
 | `ksfraser/ksf-retirement` | library | `ksf_retirement` | Retirement Planning calculation engines (Ksfraser\Retirement). |
 | `ksfraser/staging-dto` | library | `ksf_staging_dto` | Data Transfer Objects for ISU staging integration |
 | `ksfraser/portfolio-math` | library | `portfolio-math` | Portfolio performance calculations: TWR, IRR, drawdown, volatility, asset allocation. Shared library for stockmarket, FrontAccounting, ksfii_app. |
-| `ksfraser/validation` | library | `validation` | Small validation helpers and traits (PHP 7.3+) for KS Fraser modules migration. |
+| `ksf/ksf-dynamic-pricing-core` | library | `ksf_DynamicPricing_Core` | Framework-agnostic dynamic pricing engine extracted from WooCommerce DynamicPricing (*note: `ksf/` vendor prefix, not `ksfraser/`*) |
+| `ksf/ksf-shipping-core` | library | `ksf_Shipping_Core` | Framework-agnostic shipping rate calculator extracted from WooCommerce Shipping (*note: `ksf/` vendor prefix, not `ksfraser/`*) |
+| `ksfraser/ksf-fa-downloader` | library | `ksf_fa_downloader` | FrontAccounting module downloader: search user-configured targets (URL + pattern) and download modules as ZIP |
+| `ksfraser/ksf-fa-manufacturer-consolidation` | fa-module | `ksf_FA_ManufacturerConsolidation` | FrontAccounting Manufacturer Consolidation - MOQ rules, order consolidation, supplier minimums |
+| `ksfraser/ksf-fa-purchase-order-tracking` | fa-module | `ksf_FA_PurchaseOrderTracking` | FrontAccounting Purchase Order Tracking - tracks PO lead times and fill rates |
+| `ksfraser/ksf-fa-quality` | fa-module | `ksf_FA_Quality` | FrontAccounting Quality 8D System - structured problem solving methodology |
+| `ksfraser/ksf-fa-rep-audit` | project | `ksf_FA_Rep_Audit` | KSF Audit and Data Integrity Reports for FrontAccounting |
+| `ksfraser/ksf-fa-stock-negatives` | fa-module | `ksf_FA_StockNegatives` | FrontAccounting Stock Negatives Report - identifies inventory items with negative quantities |
+| `ksfraser/ksf-fa-stock-reservations` | fa-module | `ksf_FA_StockReservations` | FrontAccounting Stock Reservations - prevents overselling by reserving stock for sales orders |
+| `ksfraser/ksf-fa-stock-turnover` | fa-module | `ksf_FA_StockTurnover` | FrontAccounting Stock Turnover - tracks inventory turnover, days of inventory, consumption trends |
+| `estate-planning-manager/estate-planning-manager` | project | `PersonalRecordsOrganizer` | Estate Planning Manager WordPress Plugin (Personal Records Organizer workspace) |
+| `notrinos/notrinos-erp` | project | `NotrinosERP` | A web-based ERP/accounting system written in PHP and MySQL — *unrelated fork present in the dev tree, not a ksf package* |
 
 ---
 Generated from `composer.json` name fields across `~/Documents/*`. When you add a
