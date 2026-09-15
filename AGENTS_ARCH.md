@@ -94,15 +94,18 @@ Each table gets a `{table}_db.inc` gateway exposing `write_{table}()` /
 
 ### ComposerDependencies — self-installing vendor on activation
 
-Each module bundles `ComposerDependencies.php` in its **root directory** (copied from
-`ksf_FA_Common/src/Utils/ComposerDependencies.php`). This solves the chicken-and-egg
-problem: vendor/ doesn't exist until composer runs, but we need to run composer to
-create vendor/.
+Each module bundles `ComposerDependencies.php` in its **root directory**. The copy
+source is the per-module template
+`ksf_FA_Common/src/Utils/ComposerDependencies.template.php`: **replace the
+`MODULENAME` token in the namespace with your module's short name** (e.g.
+`ksfraser\FrontAccounting\HRM\Utils` for ksf_FA_HRM). This solves the
+chicken-and-egg problem: vendor/ doesn't exist until composer runs, but we need
+to run composer to create vendor/.
 
 ```php
 // hooks.php — top of file, BEFORE any other requires
 require_once __DIR__ . '/ComposerDependencies.php';
-\ksfraser\FrontAccounting\Common\Utils\ComposerDependencies::ensure(__DIR__);
+\ksfraser\FrontAccounting\HRM\Utils\ComposerDependencies::ensure(__DIR__);
 
 if (file_exists(__DIR__ . '/vendor/autoload.php')) {
     require_once __DIR__ . '/vendor/autoload.php';
@@ -113,6 +116,21 @@ if (file_exists(__DIR__ . '/vendor/autoload.php')) {
 not, it runs `composer install --no-interaction --prefer-dist` in `$moduleDir`. FA
 calls `install_extension()` before activation completes, so vendor/ is ready when
 other hook methods run.
+
+The guard is **namespace-scoped** (sentinel constant derived from `__NAMESPACE__` +
+`class_exists(__NAMESPACE__, false)`). This is deliberate:
+- Each module that renames `MODULENAME` gets its own class in its own namespace —
+  copies can never collide, and the legacy global constant
+  `KSF_FA_COMMON_COMPOSER_DEPENDENCIES_DECLARED` is NOT set for renamed copies (so a
+  properly-renamed module never suppresses a sibling).
+- If a module forgets to replace `MODULENAME`, all unrenamed copies collapse onto
+  the placeholder namespace; only the first to load declares the class, the rest
+  short-circuit — no redeclaration fatal, no clobbering. Their hooks.php calls still
+  resolve since the class takes `$moduleDir` per call.
+- The package's own `ksf_FA_Common/src/Utils/ComposerDependencies.php` (in the
+  `Common\Utils` namespace) uses the identical guard and may also be loaded; it
+  additionally defines the legacy constant for backward compatibility with older
+  copies. Do NOT copy that file into a module — copy the `.template.php`.
 
 ## 8. FA module naming / security constants
 

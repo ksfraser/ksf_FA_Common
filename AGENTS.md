@@ -33,10 +33,15 @@ switch to `ksf_payment_destinations/` immediately.
 - **PHP 7.3 is the cross-module compatibility floor** (current prod runs 7.3 on
   Fedora 30 until a web container is stood up; the FA container runtime is 7.4).
   See `AGENTS_ARCH.md` §1.
-- **ksf_FA_Common is now a pure Composer/Packagist package** (v1.0.9), not an FA
+- **ksf_FA_Common is now a pure Composer/Packagist package** (v1.0.11), not an FA
   module. It was gutted to a no-op module shell. Owning modules (RBAC, CRM,
   Calendar, HRM, Assets) register/unregister their `ksf_contact_types` on
   activate/deactivate via embedded `sql/retag_contact_types.sql`.
+- **ComposerDependencies bootstrap is per-module**: modules copy
+  `ksf_fa_common/src/Utils/ComposerDependencies.template.php` to their root and
+  replace `MODULENAME` in the namespace; the guard is namespace-scoped so unrenamed
+  (forgotten `MODULENAME`) copies — and the package's own `Common\Utils` copy — can
+  never redeclare or clobber. Details in `AGENTS_ARCH.md` §7.
 - **Square**: composer.json `config.platform.php = 7.4.33` pinned (commit
   `b0ef4da`) for the PHP 7.4 container; lock regeneration is blocked locally on
   the private `ksfraser/import-staging` package.

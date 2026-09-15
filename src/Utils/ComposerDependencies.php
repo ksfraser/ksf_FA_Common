@@ -4,10 +4,17 @@ declare(strict_types=1);
 
 namespace ksfraser\FrontAccounting\Common\Utils;
 
-$ksfCommonComposerDependenciesAlreadyDeclared = class_exists(__NAMESPACE__ . '\ComposerDependencies', false);
+$ksfCommonComposerDepsNamespace = __NAMESPACE__;
+$ksfCommonComposerDepsClass = 'ComposerDependencies';
+$ksfCommonComposerDepsSentinel = 'KSF_FA_COMPOSER_DEPENDENCIES_' . md5($ksfCommonComposerDepsNamespace);
+$ksfCommonComposerDepsWasDeclared = class_exists($ksfCommonComposerDepsNamespace . '\\' . $ksfCommonComposerDepsClass, false);
 
-if (!defined('KSF_FA_COMMON_COMPOSER_DEPENDENCIES_DECLARED') && !$ksfCommonComposerDependenciesAlreadyDeclared) {
-    define('KSF_FA_COMMON_COMPOSER_DEPENDENCIES_DECLARED', true);
+if (!defined($ksfCommonComposerDepsSentinel) && !$ksfCommonComposerDepsWasDeclared) {
+    define($ksfCommonComposerDepsSentinel, true);
+
+    if ($ksfCommonComposerDepsNamespace === 'ksfraser\FrontAccounting\Common\Utils' && !defined('KSF_FA_COMMON_COMPOSER_DEPENDENCIES_DECLARED')) {
+        define('KSF_FA_COMMON_COMPOSER_DEPENDENCIES_DECLARED', true);
+    }
 
     final class ComposerDependencies
     {
