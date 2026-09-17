@@ -88,6 +88,9 @@ class MasterSummaryTable
     /** @var bool Whether row-action buttons use FA's ajaxsubmit class. */
     private $useAjax;
 
+    /** @var string[] Extra $_GET keys preserved on pager links (e.g. 'view'). */
+    private $preserveParams;
+
     /**
      * @param array<int, array{key: string, label: string}> $columns    List of `['key' => ..., 'label' => ...]`
      * @param array<int, array<string, mixed>>             $rows       List of assoc record arrays
@@ -111,6 +114,7 @@ class MasterSummaryTable
      *   - show_footer            (bool,   default true)         render the Submit + Cancel footer row
      *   - empty_message          (string, default '')            message shown in an em row when there are no rows
      *   - ajax                   (bool,   default true)          use FA ajaxsubmit buttons (false for standalone pages)
+     *   - preserve_params        (array<string>, default [])     extra $_GET keys kept on pager links (e.g. ['view'])
      *
      * @since 1.0.0
      */
@@ -137,6 +141,9 @@ class MasterSummaryTable
         $this->showFooter            = (bool) ($options['show_footer'] ?? true);
         $this->emptyMessage          = (string) ($options['empty_message'] ?? '');
         $this->useAjax               = (bool) ($options['ajax'] ?? true);
+        $this->preserveParams        = is_array($options['preserve_params'] ?? null)
+            ? array_values($options['preserve_params'])
+            : [];
     }
 
     /**
@@ -636,6 +643,11 @@ class MasterSummaryTable
         }
         if ($this->tabSel !== '') {
             $params[] = '_tabs_sel=' . rawurlencode($this->tabSel);
+        }
+        foreach ($this->preserveParams as $name) {
+            if (isset($_GET[$name]) && ($_GET[$name] === '' || $_GET[$name] !== null)) {
+                $params[] = rawurlencode($name) . '=' . rawurlencode((string) $_GET[$name]);
+            }
         }
 
         return '?' . implode('&', $params);
