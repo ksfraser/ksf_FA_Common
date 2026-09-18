@@ -7,8 +7,11 @@
  * so native HTML5 validation never blocks the POST. Cancel simply re-displays
  * the page (FA pattern) — the page's POST handler decides what to do.
  *
- * Buttons use FA's `ajaxsubmit` class so FA's JsHttpRequest handler performs
- * the no-hard-refresh update when the page re-activates the table div.
+ * Buttons use FA's `inputsubmit` class (like the standard Bank Accounts
+ * maintenance form) so they submit natively and the page reloads; they must
+ * NOT use `ajaxsubmit`, which FA's JsHttpRequest handler intercepts and
+ * swallows the controller's redirect. Pass `$useAjax = true` only when the
+ * host form is genuinely wired to FA's `$Ajax->activate()` re-query flow.
  *
  * @package Ksfraser\Frontaccounting\HTML
  * @since 1.0.0
@@ -32,11 +35,15 @@ class FormFooter
     /** @var string */
     private $cancelLabel;
 
+    /** @var bool Whether the buttons are emitted with FA's `ajaxsubmit` class */
+    private $useAjax;
+
     /**
      * @param string $submitName  Name of the Submit submit-button (gates the save)
      * @param string $cancelName  Name of the Cancel submit-button
      * @param string $submitLabel Displayed label of the Submit button
      * @param string $cancelLabel Displayed label of the Cancel button
+     * @param bool   $useAjax     Emit `ajaxsubmit` buttons (default false = native submit)
      *
      * @since 1.0.0
      */
@@ -44,12 +51,14 @@ class FormFooter
         string $submitName = 'submit',
         string $cancelName = 'cancel',
         string $submitLabel = 'Submit',
-        string $cancelLabel = 'Cancel'
+        string $cancelLabel = 'Cancel',
+        bool $useAjax = false
     ) {
         $this->submitName  = $submitName;
         $this->cancelName  = $cancelName;
         $this->submitLabel = $submitLabel;
         $this->cancelLabel = $cancelLabel;
+        $this->useAjax     = $useAjax;
     }
 
     /**
@@ -115,8 +124,9 @@ class FormFooter
     {
         $name  = htmlspecialchars($name, ENT_QUOTES);
         $label = htmlspecialchars($this->localise($label), ENT_QUOTES);
+        $class = $this->useAjax ? 'ajaxsubmit' : 'inputsubmit';
 
-        return '<button class="ajaxsubmit" type="submit" formnovalidate name="' . $name
+        return '<button class="' . $class . '" type="submit" formnovalidate name="' . $name
             . '" id="' . $name . '" value="' . $label . '"><span>' . $label . '</span></button>';
     }
 
