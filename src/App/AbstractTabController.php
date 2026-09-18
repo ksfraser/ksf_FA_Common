@@ -422,7 +422,13 @@ abstract class AbstractTabController
             $this->notify($this->localise('Record saved'));
         }
 
-        $url = $this->context->redirectTarget();
+        // Prefer the current request URI so the active tab (?view=...) survives
+        // the POST. TabContext::redirectTarget() builds from PHP_SELF, which
+        // drops the query string and would bounce the user to the app default.
+        $url = $this->formAction();
+        if ($url === '') {
+            $url = $this->context->redirectTarget();
+        }
         if ($url !== '') {
             header('Location: ' . $url);
             exit;

@@ -94,6 +94,19 @@ abstract class AbstractAppShell
     }
 
     /**
+     * The configured default view key, used by host pages when no valid
+     * ?view= is supplied.
+     *
+     * @return string
+     *
+     * @since 1.0.0
+     */
+    public function getDefaultView(): string
+    {
+        return $this->defaultView;
+    }
+
+    /**
      * Register a single tab directly (core tabs / manual injection).
      *
      * @param TabRegistration $tab
