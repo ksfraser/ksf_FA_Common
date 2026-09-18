@@ -265,7 +265,7 @@ abstract class AbstractTabController
             return '';
         }
         ob_start();
-        start_form(false, '', $this->getPkField());
+        start_form(false, '', $this->formAction());
         echo '<input type="hidden" name="' . $this->getPkField() . '" value="'
             . htmlspecialchars($this->context->getRecordId(), ENT_QUOTES) . '">';
         return (string) ob_get_clean();
@@ -381,7 +381,7 @@ abstract class AbstractTabController
     {
         if (class_exists(FieldForm::class)) {
             echo FieldForm::renderForm(
-                $metadata['fields'] ?? [],
+                $metadata,
                 $values,
                 $fkOptions,
                 ['hidden' => [$this->getPkField() => $this->context->getRecordId()]]
@@ -509,9 +509,15 @@ abstract class AbstractTabController
         return (int) ($_GET['page'] ?? 1);
     }
 
-    /** @return string Form action URL ('' = current page). */
+    /**
+     * @return string Form action URL (keeps the current query string so the
+     *               active tab and filters survive the POST). '' = current page.
+     */
     protected function formAction(): string
     {
+        if (isset($_SERVER['REQUEST_URI']) && $_SERVER['REQUEST_URI'] !== '') {
+            return (string) $_SERVER['REQUEST_URI'];
+        }
         return isset($_SERVER['PHP_SELF']) ? (string) $_SERVER['PHP_SELF'] : '';
     }
 
