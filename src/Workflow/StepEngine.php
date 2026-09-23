@@ -197,9 +197,32 @@ final class StepEngine
     }
 
     /**
-     * Apply a do-verb list in order (`set`/`create`/`call`/`broadcast`/`end`).
+     * Dispatch a DO-verb list in order (set/create/call/broadcast/end),
+     * reusing the same semantics as a step's `do`. State machine pre/post
+     * action lists reuse this verb engine.
+     *
+     * @param array  $do      verb rows
+     * @param array  $dto     current DTO
+     * @param array  $context step context (record_type/event/depth/step_index,
+     *                        optional 'result' pre-seeded by a resolver)
+     *
+     * @return array<string,mixed> ['dto'=>array, 'changed'=>bool, 'stopped'=>bool,
+     *                              'context'=>array (final context incl. 'result')]
      */
-    private function executeDoList(array $do, array $dto, array $context): array
+    public function applyVerbList(array $do, array $dto, array $context, bool $faultTolerant = true): array
+    {
+        return $this->executeDoList($do, $dto, $context, $faultTolerant);
+    }
+
+    /**
+     * Apply a do-verb list in order (`set`/`create`/`call`/`broadcast`/`end`).
+     *
+     * @param bool $faultTolerant when true, resolver/call exceptions are
+     *                            logged and swallowed; when false they rethrow
+     *                            (state machine post-actions rely on this for
+     *                            transactional rollback, BR-COM-02 AC3).
+     */
+    private function executeDoList(array $do, array $dto, array $context, bool $faultTolerant = true): array
     {
         $outcome = ['dto' => $dto, 'changed' => false, 'stopped' => false];
 
@@ -240,7 +263,7 @@ final class StepEngine
                     }
                     break;
 
-                case 'call':
+case 'call':
                     if (\count($verbRow) >= 2) {
                         $target = $verbRow[1];
                         $method = $verbRow[2] ?? null;
@@ -248,13 +271,40 @@ final class StepEngine
                             : $target;
                         if ($resolverKey !== null) {
                             try {
-                                $this->calc->call($resolverKey, $outcome['dto'], $context, $method);
+                                $context['result'] = $this->calc->call(
+                                    $resolverKey, $outcome['dto'], $context, $method);
                             } catch (\Throwable $e) {
+                                if (!$faultTolerant) {
+                                    throw $e;
+                                }
                                 $this->log(\array_merge($this->baseRow($context['record_type'],
                                         $context['event'], $context['depth']),
-                        ['guard' => 'call', 'step' => $context['step_index'],
-                        'detail' => "call {$resolverKey} threw: " . $e->getMessage()]));
+                                    ['guard' => 'call', 'step' => $context['step_index'],
+                                    'detail' => "call {$resolverKey} threw: " . $e->getMessage()]));
                             }
+                        }
+                    }
+                    break;
+
+                case 'resolver':
+                    // Resolver verb: run a CalcRegistry resolver and store its
+                    // output as the step's `result` so later verbs/guards can
+                    // read it via 'result.<path>' (BR-COM-02 transition pre).
+                    if (\count($verbRow) >= 2) {
+                        $resolverKey = (string) $verbRow[1];
+                        $method      = $verbRow[2] ?? null;
+                        try {
+                            $context['result'] = $this->calc->call(
+                                $resolverKey, $outcome['dto'], $context, $method);
+                        } catch (\Throwable $e) {
+                            if (!$faultTolerant) {
+                                throw $e;
+                            }
+                            $this->log(\array_merge($this->baseRow($context['record_type'],
+                                    $context['event'], $context['depth']),
+                                ['guard' => 'resolver', 'step' => $context['step_index'],
+                                'detail' => "resolver {$resolverKey} threw: " . $e->getMessage()]));
+                            $context['result'] = ['error' => $e->getMessage()];
                         }
                     }
                     break;
@@ -277,6 +327,7 @@ final class StepEngine
             }
         }
 
+        $outcome['context'] = $context;
         return $outcome;
     }
 

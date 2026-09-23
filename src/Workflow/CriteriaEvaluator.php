@@ -21,8 +21,20 @@ namespace ksfraser\FrontAccounting\Common\Workflow;
  */
 final class CriteriaEvaluator
 {
+    /** Supported predicate operators (BR-COM-01, FR-COM-01-002). */
+    public const OPS = ['eq', 'ne', 'gt', 'gte', 'lt', 'lte', 'in', 'nin',
+                        'contains', 'not_contains', 'is_null', 'not_null', 'isset'];
+
     private function __construct()
     {
+    }
+
+    /**
+     * Whether $op is a supported criteria operator (designer validation).
+     */
+    public static function supportsOp(string $op): bool
+    {
+        return \in_array($op, self::OPS, true);
     }
 
     /**
