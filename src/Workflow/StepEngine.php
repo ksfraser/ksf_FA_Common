@@ -270,6 +270,10 @@ case 'call':
                         $resolverKey = \is_array($target) ? ($target['resolver'] ?? null)
                             : $target;
                         if ($resolverKey !== null) {
+                            $callArgs = $verbRow[3] ?? null;
+                            if (\is_array($callArgs)) {
+                                $context['call_args'] = $this->resolvePayload($callArgs, $context);
+                            }
                             try {
                                 $context['result'] = $this->calc->call(
                                     $resolverKey, $outcome['dto'], $context, $method);
@@ -281,6 +285,8 @@ case 'call':
                                         $context['event'], $context['depth']),
                                     ['guard' => 'call', 'step' => $context['step_index'],
                                     'detail' => "call {$resolverKey} threw: " . $e->getMessage()]));
+                            } finally {
+                                unset($context['call_args']);
                             }
                         }
                     }

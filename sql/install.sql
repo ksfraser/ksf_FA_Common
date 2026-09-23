@@ -127,3 +127,44 @@ CREATE TABLE IF NOT EXISTS `0_ksf_wf_history` (
     PRIMARY KEY (`id`),
     KEY `idx_wf_history_record_seq` (`record_type`, `record_id`, `id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Immutable append-only workflow transition history (BR-COM-02)';
+
+-- ===========================================================================
+-- Notification Inbox (BR-COM-03) — per-user append-only activity feed.
+--
+-- The existing 0_ksf_notifications table (above) is the dispatch/outbox model
+-- (status/scheduled_at/ack) used by NotificationRepository. The INBOX is a
+-- different subsystem: INSERT-only rows keyed by recipient, with read/dismiss
+-- flags on the owner row. Table name deliberately renamed to
+-- 0_ksf_notification_inbox to avoid clashing with the outbox (BR-COM-03
+-- spec'd 0_ksf_notifications, which was already taken).
+-- recipient_uid 0 = @all broadcast placeholder; materialized per user on the
+-- first read poll (see InboxStorageInterface::materializeAll).
+-- ===========================================================================
+
+CREATE TABLE IF NOT EXISTS `0_ksf_notification_inbox` (
+    `id`           INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `recipient_uid` INT         NOT NULL COMMENT 'FA user id (0 = @all placeholder)',
+    `type`         VARCHAR(60)  NOT NULL COMMENT 'Registered notification type (e.g. hrm.leave_approved)',
+    `payload`      TEXT         NOT NULL COMMENT 'JSON body fields',
+    `ref`          VARCHAR(120) DEFAULT NULL COMMENT 'Deep-link ref (e.g. hr:leave_request:42)',
+    `created_at`   DATETIME     NOT NULL,
+    `read_at`      DATETIME     DEFAULT NULL,
+    `dismissed_at` DATETIME     DEFAULT NULL,
+    PRIMARY KEY (`id`),
+    KEY `idx_inbox_recipient_unread` (`recipient_uid`, `read_at`, `created_at`),
+    KEY `idx_inbox_type` (`type`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Append-only per-user notification inbox (BR-COM-03)';
+
+CREATE TABLE IF NOT EXISTS `0_ksf_notification_prefs` (
+    `recipient_uid` INT         NOT NULL COMMENT 'FA user id',
+    `muted_types`   TEXT        DEFAULT NULL COMMENT 'JSON array of muted notification types',
+    `digest`        TINYINT(1)  NOT NULL DEFAULT 0 COMMENT '1 = digest delivery requested (v1: flag only)',
+    `updated_at`    DATETIME    DEFAULT NULL,
+    PRIMARY KEY (`recipient_uid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Per-user notification preferences (BR-COM-03 FR-COM-03-005)';
+
+CREATE TABLE IF NOT EXISTS `0_ksf_notification_watermark` (
+    `recipient_uid` INT UNSIGNED NOT NULL COMMENT 'FA user id',
+    `last_all_id`   INT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Highest materialized @all inbox id for this user',
+    PRIMARY KEY (`recipient_uid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Per-user @all materialization watermark (BR-COM-03 FR-COM-03-002)';
