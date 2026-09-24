@@ -124,3 +124,36 @@ When a new module needs calendar contact types:
 - [ ] Call `CalendarContactTypeRegistry::unregisterModule('ksf_<Module>')` in `deactivate_extension()`
 - [ ] Add note in module's `AGENTS.local.md` referencing `ksf_FA_Common`
 ```
+
+## Scheduler bootstrap & deployment (BR-COM-04, FR-COM-04-005..009)
+
+- **Entry point:** `cron.php` at the package root; run per minute via cron. It
+  boots FA's DB (`config_db.php` + mysqli + FA-shaped `db_*` wrappers) and DI's
+  `JobRunner(FaJobsAdapter, SystemClock, JobResolverRegistry)`.
+- **Autoload robustness (critical for vendored deploy):** when this package is
+  vendored (consumer's `vendor/ksfraser/ksf-fa-common/`), `cron.php` has NO own
+  `vendor/`. The loader tries, in order: own `vendor/autoload.php` (dev tree),
+  consumer's `dirname(__DIR__,3)/vendor/autoload.php` (the module root), then a
+  bare PSR-4 fallback over the package `src/`. Keeps the CLI runnable standalone
+  AND as a vendored dependency.
+- **Common-owned resolvers registered in `cron.php` before the module hook:**
+  - `wf.transition.wait` → `WaitTransition(StateMachine(FaStateStore), FaJobsAdapter)` (FR-COM-04-007).
+  - `brcom03.notification.digest` → `NotificationDigest(FaInboxStore, FaNotificationPreferenceStore)` (FR-COM-04-008).
+  Both are guarded by `class_exists()` so a stale vendored copy degrades
+  gracefully. Owning modules supply additional resolvers via the
+  `scheduler_resolvers` hook (merged last-wins).
+- **Runtime DB contract (verified by e2e):** `db_escape()` MUST be the FA
+  variant — self-quoting, `'NULL'` for null, never a bare `real_escape_string`
+  result and never pre-quoted by callers. `FaJobsAdapter` builds literal SQL
+  with `db_escape($this->stamp($dt))` for every value including datetime
+  literals and `next_run_at` persistence in `registerJob`.
+- **JSON params:** at FA runtime job `params` are a JSON string column; in-memory
+  adapter uses arrays. `JobRunner` normalizes both via `params()`. Store JSON on
+  write via `FaJobsAdapter` (`$this->json(...)`), never cast arrays to string.
+- **e2e harness:** `e2e_ksf_common_scheduler.php` (package root) mirrors
+  `ksf_FA_HRM/e2e_hrm_event_windows.php` — boots the live FA DB, ensures the
+  scheduler DDL, seeds a recurring job, drives the engine, asserts run rows +
+  idempotence (second consume adds no run), cleans up. Run inside the FA
+  container against the deployed (fresh-synced) vendored copy. It caught two
+  real adapter bugs the unit suite cannot: unquoted datetime in `listDue`, and
+  missing `next_run_at` persistence in `registerJob`.

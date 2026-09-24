@@ -168,3 +168,43 @@ CREATE TABLE IF NOT EXISTS `0_ksf_notification_watermark` (
     `last_all_id`   INT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Highest materialized @all inbox id for this user',
     PRIMARY KEY (`recipient_uid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Per-user @all materialization watermark (BR-COM-03 FR-COM-03-002)';
+
+-- ===========================================================================
+-- Scheduled Automation (BR-COM-04) — job registry + append-only run log.
+--
+-- job_type: 'recurring' | 'oneshot'. interval_p: '1 hour', '3 days', ... .
+-- resolver: CalcRegistry key (BR-COM-01) for the job body. fail_count tracks
+-- consecutive failures (FR-COM-04-004): the scheduler packs up and disables a
+-- job after 5 consecutive failures. oneshot jobs self-disable (enabled=0,
+-- next_run_at=NULL) on success.
+-- ===========================================================================
+
+CREATE TABLE IF NOT EXISTS `0_ksf_wf_jobs` (
+    `job_id`      INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+    `module`      VARCHAR(60)  NOT NULL COMMENT 'Owning module (schema owner)',
+    `job_key`     VARCHAR(120) NOT NULL COMMENT 'e.g. hrm.leave_accrual.monthly',
+    `job_type`    VARCHAR(10)  NOT NULL COMMENT 'recurring | oneshot',
+    `interval_p`  VARCHAR(20)  NOT NULL COMMENT 'e.g. 1 hour, 3 days, 1 month',
+    `resolver`    VARCHAR(120) NOT NULL COMMENT 'CalcRegistry key (BR-COM-01)',
+    `params`      TEXT         NULL     COMMENT 'JSON payload for the resolver',
+    `enabled`     TINYINT(1)   NOT NULL DEFAULT 1,
+    `last_run_at` DATETIME     NULL,
+    `next_run_at` DATETIME     NULL     COMMENT 'oneshot: explicit fire time',
+    `last_error`  TEXT         NULL,
+    `fail_count`  TINYINT      NOT NULL DEFAULT 0 COMMENT 'Consecutive failures (FR-COM-04-004)',
+    `created_at`  DATETIME     NOT NULL,
+    PRIMARY KEY (`job_id`),
+    KEY `idx_next_run` (`next_run_at`, `enabled`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Scheduled automation job registry (BR-COM-04)';
+
+CREATE TABLE IF NOT EXISTS `0_ksf_wf_run_log` (
+    `run_id`      INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+    `job_id`      INT(11) NOT NULL,
+    `started_at`  DATETIME NOT NULL,
+    `finished_at` DATETIME NULL,
+    `status`      VARCHAR(12) NOT NULL COMMENT "ok | failed | locked | skipped",
+    `detail`      TEXT NULL,
+    `source`      VARCHAR(10) NOT NULL DEFAULT 'cli' COMMENT 'cli | web (FR-COM-04-006)',
+    PRIMARY KEY (`run_id`),
+    KEY `idx_job_status` (`job_id`, `status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Append-only scheduler run log (BR-COM-04)';

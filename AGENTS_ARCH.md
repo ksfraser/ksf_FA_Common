@@ -92,6 +92,26 @@ Each table gets a `{table}_db.inc` gateway exposing `write_{table}()` /
   PHP 8+ transitive deps breaks a PHP 7.x container) — pin
   `config.platform.php` to the container's PHP where needed.
 
+### Integration-environment gotchas (ksfii_app pod, verified 2026-09)
+
+- The dev-shell runs as **root**, so `git`/file writes inside the bind-mounted
+  deploy clones leave root-owned files and rewrite mode bits on
+  checkout/reset. If `git pull` at a bind point refuses with "Your local
+  changes to the following files would be overwritten" while `git status --short`
+  is clean, suspect in order: an `assume-unchanged` flag (`git ls-files -v`
+  shows lowercase `h`), a root-owned `.git/index` (makes `git update-index`
+  silently a no-op), or a 186-hardlink shared doc whose content is ahead of
+  HEAD. The reliable fix is aligning the clone to origin from the deploy clone:
+  `git fetch && git reset --hard origin/main`. Never hand-`chmod`/`chown`
+  tracked files mid-tree; re-align instead.
+- The web front-end HTML-encodes `&` in query strings mid-transit:
+  `$_SERVER['REQUEST_URI']` reads e.g. `...?view=contacts&amp;filter_debtor_no=1`
+  while `$_GET` still parses every param correctly (so filtering works end to
+  end). Round-trips are consistent — form `action=` URLs and `Location:` headers
+  carry the same encoded form and are re-decoded the same way. Therefore when
+  appending a query param to `formAction()`/`REQUEST_URI` for a redirect, detect
+  an existing param with `strpos($url, 'name=')` instead of splitting on raw `&`.
+
 ### ComposerDependencies — self-installing vendor on activation
 
 Each module bundles `ComposerDependencies.php` in its **root directory**. The copy
@@ -147,6 +167,44 @@ Every direct-access module page MUST call `add_access_extensions()` (registering
 its security areas) **before** `page_header()`. Missing it produces a blank
 (~855-byte) page. Guard so that a user without the area is refused before any
 output.
+
+### FA UI bootstrap — `ui.inc` is NOT auto-loaded
+
+`includes/main.inc` only pulls `ui_controls.inc` (provides `start_form`,
+`end_form`, `start_table`, button helpers, ...). The rest of the FA UI layer —
+`ui_lists.inc` (`customer_list`, `customer_list_row`, `combo_input`,
+`array_selector`, ...), `ui_input.inc`, `ui_msgs.inc`, `ui_globals.inc`,
+`ui_view.inc`, `data_checks.inc` — is loaded by `includes/ui.inc`, which every
+native FA page `include_once(...)`s after `session.inc`.
+
+App-shell module entry pages (e.g. `modules/ksf_FA_CRM/index.php`) MUST do the
+same:
+
+```php
+include_once($path_to_root . "/includes/session.inc");
+add_access_extensions();
+include_once($path_to_root . "/includes/ui.inc"); // required for ui_lists helpers
+```
+
+Without it, tab code that calls an FA-native list/DLL helper (e.g.
+`customer_list_row`) silently skips rendering that control: `start_form` /
+`end_table` still work because `main.inc` loaded `ui_controls.inc`, so the page
+renders normally minus the helper control, with no error visible. Debugging
+trap: `function_exists('start_form') === true` does NOT imply
+`function_exists('customer_list_row')`.
+
+### Tab-footer buttons — native `inputsubmit`, never `ajaxsubmit`
+
+FA's `js/inserts.js` intercepts clicks on elements with class
+`ajaxsubmit`/`editbutton`/`navibutton` and routes them through
+`JsHttpRequest.request()` — an XHR that swallows navigation (POST persists, the
+page never reloads; F5 shows the change). `ksf_FA_Common`'s `FormFooter`
+historically emitted `class="ajaxsubmit"`, so Save/Cancel on every app-shell tab
+had this symptom. Convention (decided 2026-09): tab-footer Save/Cancel buttons
+use FA-native classes (`inputsubmit`) — `FormFooter` defaults `useAjax=false`;
+`ajaxsubmit` is only opt-in for content that genuinely wants in-place XHR.
+`MasterSummaryTable` row actions (Edit/Delete) already render native
+`inputsubmit` rows (the tab controller passes `'ajax' => false`).
 
 ## 10. FA DB layer — correct API (gotchas)
 
