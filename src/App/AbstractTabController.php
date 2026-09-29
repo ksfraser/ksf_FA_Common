@@ -246,6 +246,14 @@ abstract class AbstractTabController
             if ($name === $pk) {
                 continue;
             }
+            // An unchecked HTML checkbox is simply absent from $_POST, so the
+            // `?? $field['default']` fallback below would silently resurrect it
+            // (e.g. is_active defaulting back to 1 and the row never
+            // deactivating). Absence must therefore mean unchecked (0).
+            if (($field['type'] ?? '') === 'checkbox') {
+                $data[$name] = !empty($_POST[$name]) ? 1 : 0;
+                continue;
+            }
             $data[$name] = $_POST[$name] ?? ($field['default'] ?? '');
         }
         return $data;
