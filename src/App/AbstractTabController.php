@@ -287,6 +287,38 @@ abstract class AbstractTabController
     }
 
     /**
+     * Labels for the summary table's per-row action buttons.
+     *
+     * Override where the row action is a domain verb rather than a literal
+     * delete — e.g. the employees tab maps delete to EmployeeService::terminate()
+     * and so labels the button 'Terminate'. Defaults to Edit / Delete.
+     *
+     * @return array<string, string> Action name => button label
+     *
+     * @since 1.0.0
+     */
+    protected function getActionLabels(): array
+    {
+        return [
+            'edit'   => $this->localise('Edit'),
+            'delete' => $this->localise('Delete'),
+        ];
+    }
+
+    /**
+     * Confirmation text shown before a delete row action fires. Override
+     * alongside getActionLabels() when the action is a domain verb.
+     *
+     * @return string
+     *
+     * @since 1.0.0
+     */
+    protected function getDeleteConfirmMessage(): string
+    {
+        return $this->localise('Delete this record?');
+    }
+
+    /**
      * Render the paged SUMMARY UI SRP on top.
      *
      * @return void
@@ -324,6 +356,8 @@ abstract class AbstractTabController
                 'title'            => $this->getTitle(),
                 'show_footer'      => false, // footer belongs to the entry form below
                 'empty_message'    => $this->localise('No records yet.'),
+                'action_labels'    => $this->getActionLabels(),
+                'delete_confirm_message' => $this->getDeleteConfirmMessage(),
                 'ajax'             => false,
                 'preserve_params'  => $this->preserveParams(),
             ]

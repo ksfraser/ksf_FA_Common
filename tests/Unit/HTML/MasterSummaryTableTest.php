@@ -383,4 +383,45 @@ class MasterSummaryTableTest extends TestCase
         $this->assertSame(1, $this->makeTable(['total' => 3, 'per_page' => 10])->getPageCount());
         $this->assertSame(1, $this->makeTable(['total' => 0, 'per_page' => 10])->getPageCount());
     }
+
+    public function testRowActionLabelsDefaultToEditAndDelete(): void
+    {
+        $html = $this->makeTable()->toHtml();
+
+        $this->assertStringContainsString('>Edit<', $html);
+        $this->assertStringContainsString('>Delete<', $html);
+    }
+
+    public function testActionLabelsOptionOverridesRowActionLabels(): void
+    {
+        // The employees tab maps delete to a termination, which is a domain verb
+        // rather than a literal delete — the button must read 'Terminate'.
+        $html = $this->makeTable(
+            ['action_labels' => ['edit' => 'Amend', 'delete' => 'Terminate']]
+        )->toHtml();
+
+        $this->assertStringContainsString('>Amend<', $html);
+        $this->assertStringContainsString('>Terminate<', $html);
+        $this->assertStringNotContainsString('>Delete<', $html);
+        // The submit name stays `delete_<id>` so AbstractTabController::handlePost()
+        // still routes the POST to deleteRecord().
+        $this->assertStringContainsString('name="delete_1"', $html);
+    }
+
+    public function testActionLabelsOptionMergesOverDefaults(): void
+    {
+        // Only the delete label is supplied; edit must keep its default.
+        $html = $this->makeTable(['action_labels' => ['delete' => 'Deactivate']])->toHtml();
+
+        $this->assertStringContainsString('>Edit<', $html);
+        $this->assertStringContainsString('>Deactivate<', $html);
+    }
+
+    public function testActionLabelsIgnoreNonArrayOption(): void
+    {
+        $html = $this->makeTable(['action_labels' => 'nonsense'])->toHtml();
+
+        $this->assertStringContainsString('>Edit<', $html);
+        $this->assertStringContainsString('>Delete<', $html);
+    }
 }

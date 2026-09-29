@@ -79,6 +79,9 @@ class MasterSummaryTable
     /** @var string Confirmation message shown before a delete row action. */
     private $deleteConfirmMessage;
 
+    /** @var array<string, string> Labels for the per-row action buttons ('edit', 'delete'). */
+    private $actionLabels;
+
     /** @var bool Whether the centred Submit + Cancel footer row is rendered. */
     private $showFooter;
 
@@ -111,6 +114,9 @@ class MasterSummaryTable
      *   - cancel_button_name     (string, default 'cancel')    footer Cancel button name
      *   - title                  (string, default '')          optional table title
      *   - delete_confirm_message (string, default 'Delete this record?') delete confirm text
+     *   - action_labels         (array<string,string>, default ['edit'=>'Edit','delete'=>'Delete'])
+     *                            per-row action button labels — override where the action is a
+     *                            domain verb (e.g. 'delete' => 'Terminate' for employees)
      *   - show_footer            (bool,   default true)         render the Submit + Cancel footer row
      *   - empty_message          (string, default '')            message shown in an em row when there are no rows
      *   - ajax                   (bool,   default true)          use FA ajaxsubmit buttons (false for standalone pages)
@@ -138,6 +144,10 @@ class MasterSummaryTable
         $this->cancelButtonName      = (string) ($options['cancel_button_name'] ?? 'cancel');
         $this->title                 = (string) ($options['title'] ?? '');
         $this->deleteConfirmMessage  = (string) ($options['delete_confirm_message'] ?? 'Delete this record?');
+        $this->actionLabels          = array_merge(
+            ['edit' => $this->localise('Edit'), 'delete' => $this->localise('Delete')],
+            is_array($options['action_labels'] ?? null) ? $options['action_labels'] : []
+        );
         $this->showFooter            = (bool) ($options['show_footer'] ?? true);
         $this->emptyMessage          = (string) ($options['empty_message'] ?? '');
         $this->useAjax               = (bool) ($options['ajax'] ?? true);
@@ -552,10 +562,10 @@ class MasterSummaryTable
         $out = '';
 
         if (!empty($this->rowActions['edit'])) {
-            $out .= $this->actionButton('edit', $id, $this->localise('Edit'), false);
+            $out .= $this->actionButton('edit', $id, $this->actionLabels['edit'], false);
         }
         if (!empty($this->rowActions['delete'])) {
-            $out .= $this->actionButton('delete', $id, $this->localise('Delete'), true);
+            $out .= $this->actionButton('delete', $id, $this->actionLabels['delete'], true);
         }
 
         return $out;
