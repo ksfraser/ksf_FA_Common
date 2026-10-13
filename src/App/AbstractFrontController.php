@@ -530,6 +530,13 @@ abstract class AbstractFrontController
             return;
         }
 
+                // ui.inc reads $path_to_root as a plain variable in ITS including scope.
+        // Included from a method, that variable does not exist, so every include
+        // INSIDE ui.inc resolved against the filesystem root and failed silently -
+        // leaving array_selector_row(), label_cell() and friends undefined until a
+        // tab died mid-render. Seed the local before including.
+        $path_to_root = $this->pathToRoot;
+
         include_once $file;
     }
 
