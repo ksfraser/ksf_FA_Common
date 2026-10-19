@@ -26,6 +26,7 @@
         }
     },
     "require-dev": {
+        "ksfraser/famock": "^0.10",
         "phpunit/phpunit": "^10.0"
     },
     "autoload-dev": {

@@ -42,6 +42,43 @@ Menu placement is added by the page code (see `pages/` above); if a tab is
 missing, check that the module is activated for your company and that your
 user holds the listed security areas.
 
+## Shared contact resolver
+
+One contact registry exists: FA core's `0_crm_persons` (the person) and
+`0_crm_contacts` (the person-to-entity relation). Our own
+`0_ksf_crm_contacts` table is **deprecated** — do not use it, migrate to it,
+or replace it with another `0_ksf_*` counterpart. A module that needs a
+contact goes through the shared resolver in this package rather than
+querying a contact table itself, and it accesses native FA data through FA's
+**native functions**, never raw SQL against an FA core table. The decision
+and the verified function list are in `AGENTS_ARCH.md` §12.2.
+
+```php
+use ksfraser\FrontAccounting\Common\ContactResolver\ContactResolver;
+
+$resolver = new ContactResolver();          // FA runtime (native functions)
+
+$person    = $resolver->findById(7);                       // one person
+$byEmail   = $resolver->findByEmail('a@example.com');      // every match
+$customers = $resolver->findByCustomer('CUST-1');          // a debtor's contacts
+$entity    = $resolver->findByEntity('cust_branch', 'BR-9');
+$contact   = $resolver->findContactById(21);               // one relation
+$categories = $resolver->listContactCategoryIds(7);        // category ids
+$hits      = $resolver->search('alice', 20);               // name/email/phone
+```
+
+- Contract: `ksfraser\FrontAccounting\Common\ContactResolver\Contract\ContactResolverInterface`
+- FA implementation: `…\ContactResolver\FaContactResolver` — native functions
+  only (`get_crm_person`, `get_crm_persons`, `get_crm_contact`,
+  `get_person_contacts`).
+- Non-FA implementation: `…\ContactResolver\InMemoryContactResolver` — for
+  tests, CLI tools and platforms that keep their directory in process.
+- A non-FA platform (WordPress, Nextcloud, standalone) either injects its own
+  implementation of the contract, or answers the `ksf_contact_resolve` hook
+  (`ContactResolverHookContract`); `ContactResolver` asks the hook first and
+  falls back to its implementation. A shared seam is never gated on another
+  module being activated.
+
 ## Repository layout
 
 ```
