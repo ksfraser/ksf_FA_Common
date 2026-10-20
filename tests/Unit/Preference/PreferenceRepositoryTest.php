@@ -64,7 +64,7 @@ final class PreferenceRepositoryTest extends TestCase
     {
         $repo = new PreferenceRepository();
 
-        $this->assertNotSame('0_fa_preference_values', $repo->tableName());
+        $this->assertNotSame('fa_preference_values', $repo->tableName());
         $this->assertStringStartsNotWith('0_fa_', $repo->tableName());
     }
 

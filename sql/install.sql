@@ -55,7 +55,22 @@ CREATE TABLE IF NOT EXISTS `0_ksf_notifications` (
 -- Job Queue — non-blocking background job processing
 -- ===========================================================================
 
-CREATE TABLE IF NOT EXISTS `0_fa_job_queue` (
+-- ===========================================================================
+-- Module Registry — shared across every module
+-- ===========================================================================
+-- One row per installed module.  It replaces the legacy `fa_modules` table,
+-- which had no company prefix and was created by no schema, so every module's
+-- INSERT into it failed silently.
+
+CREATE TABLE IF NOT EXISTS `0_ksf_modules` (
+    `name`      VARCHAR(100) NOT NULL COMMENT 'Module package name',
+    `version`   VARCHAR(32)  NOT NULL DEFAULT '' COMMENT 'Installed module version',
+    `enabled`   TINYINT(1)   NOT NULL DEFAULT 1,
+    `installed` DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Shared registry of installed modules';
+
+CREATE TABLE IF NOT EXISTS `0_ksf_common_job_queue` (
     `id`            INT           NOT NULL AUTO_INCREMENT,
     `job_type`      VARCHAR(128)  NOT NULL COMMENT 'Job type identifier (e.g. send_email, assign_sales_rep)',
     `payload`       JSON          NULL     COMMENT 'Job parameters as JSON',

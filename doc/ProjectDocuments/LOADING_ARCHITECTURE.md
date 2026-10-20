@@ -44,7 +44,7 @@ Fresh-install tables are created on demand by the classes that own them
 | Table                         | Ensured by                                           |
 |-------------------------------|------------------------------------------------------|
 | `ksf_contact_types`           | `ContactType\ContactTypeRegistry::ensureTable()`     |
-| `fa_job_queue`                | `Queue\JobQueue::ensureTable()`                      |
+| `ksf_common_job_queue`                | `Queue\JobQueue::ensureTable()`                      |
 | `ksf_notifications`           | `Notification\NotificationRepository::ensureTable()` |
 | `ksf_item_sync_state` + `ksf_item_event_watermark` | `ItemEvents\DbItemChangeStateStore::ensureTable()` |
 

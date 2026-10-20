@@ -10,7 +10,7 @@
 ## TL;DR
 
 - ksf_FA_Common creates 5 tables on activation (`sql/install.sql`):
-  `0_ksf_contact_types`, `0_ksf_notifications`, `0_fa_job_queue`,
+  `0_ksf_contact_types`, `0_ksf_notifications`, `0_ksf_common_job_queue`,
   `0_ksf_item_sync_state`, `0_ksf_item_event_watermark`.
 - In practice the **owners/producers are other modules**; Common only hosts the
   shared schema + the class library (registry, services, publishers).
@@ -20,7 +20,7 @@
   pseudo-cron scanner runs. **ProductAttributes currently does not publish.**
 - With only Common + Square + Woo installed, item events never fire and
   Square/Woo never auto-sync items.
-- **Decision 2026-08-29: leave ownership as-is.** `0_fa_job_queue` stays in
+- **Decision 2026-08-29: leave ownership as-is.** `0_ksf_common_job_queue` stays in
   Common ("job queue could be common"). Real-cron / SuiteCRM-style scheduler
   work is deferred until ProductAttributes + Square + Woo pass UAT.
 
@@ -65,7 +65,7 @@ consumers exist in code. Common merely hosts the shared `NotificationService`
 class. **Owner is Calendar-in-practice; candidate to move there once Calendar
 owns it end-to-end.** Deferred past UAT.
 
-### `0_fa_job_queue` — Common (decision: stays)
+### `0_ksf_common_job_queue` — Common (decision: stays)
 
 - Writer API: `JobQueue::createJob()` — **zero production enqueue callers**
   (tests only).
@@ -135,7 +135,7 @@ pseudo-cron being present.
 ## Decided (leave as-is) / Post-UAT backlog
 
 Decided now:
-- Keep all 5 tables where they are. `0_fa_job_queue` stays in Common.
+- Keep all 5 tables where they are. `0_ksf_common_job_queue` stays in Common.
 - Keep pseudo-cron for the launch.
 
 Post-UAT backlog:

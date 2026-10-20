@@ -33,7 +33,7 @@ namespace ksfraser\FrontAccounting\Common\Queue;
  */
 class JobQueue
 {
-    private const TABLE = 'fa_job_queue';
+    private const TABLE = 'ksf_common_job_queue';
 
     /** @var bool Whether the job queue table has been ensured this request. */
     private static $schemaEnsured = false;
