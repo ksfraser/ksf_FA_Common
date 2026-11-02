@@ -82,6 +82,7 @@ Packagist URL pattern: `https://packagist.org/packages/<package>`.
 | `ksfraser/ksf_fa_leave` | frontaccounting-module | `ksf_FA_Leave` | Leave Management Module for FrontAccounting |
 | `ksfraser/ksf-fa-logging` | library | `ksf_FA_Logging` | FrontAccounting module for structured logging — hook handler, per-module level config, and log viewer UI |
 | `ksfraser/ksf_fa_loyalty` | frontaccounting-module | `ksf_FA_Loyalty` | Customer Loyalty Program for FrontAccounting (depends on CRM) |
+| `ksfraser/ksf_fa_native_responder` | fa-module | `ksf_FA_NativeResponder` | Hook responders over FA native data functions: FETCH_/SEARCH_ verbs, DTO in, Result envelope out. See ADR-005. |
 | `ksfraser/ksf-fa-mail` | fa-module | `ksf_FA_Mail` | SMTP mail module for FrontAccounting using PHPMailer |
 | `ksfraser/ksf-fa-nextcloud` | fa-module | `ksf_FA_Nextcloud` | FA UI + hooks for Nextcloud calendar sync (companion to ksf_nextcloud). |
 | `ksfraser/ksf-fa-notes` | fa-module | `ksf_FA_Notes` | FA module for Notes/Comments management with multi-entity linking, ACL, and OCR |

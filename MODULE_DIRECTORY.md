@@ -203,6 +203,7 @@ HRM (`ksf_FA_HRM`) is an orchestrator. These sub-modules answer hooks:
 | **ksf_FA_Rep_Customer** | — | Rep customer report (`reporting/`) | None |
 | **ksf_FA_Rep_Operations** | — | Rep operations report (`reporting/`) | None |
 | **ksf_fa_downloader** | — | FA module download/fetch tool | `01_fa_download_targets`, `02_fa_downloads` |
+| **ksf_FA_NativeResponder** | 1.0.0 | Hook responders over FA native data functions: FETCH_/SEARCH_ verbs, DTO in, Result envelope out (ADR-005). No own tables; no pages. | None (hooks-only) |
 
 ---
 
