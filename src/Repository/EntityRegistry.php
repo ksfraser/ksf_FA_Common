@@ -110,4 +110,80 @@ class EntityRegistry
     {
         return array();
     }
+
+    /**
+     * Get the full entity type registry.
+     *
+     * @return array<string, array>
+     */
+    public function all(): array
+    {
+        return $this->buildRegistry();
+    }
+
+    /**
+     * Get one entity type definition.
+     *
+     * @param string $entity_type Registry key
+     * @return array|null Definition or null when unknown
+     */
+    public function get(string $entity_type): ?array
+    {
+        $types = $this->buildRegistry();
+        return isset($types[$entity_type]) ? $types[$entity_type] : null;
+    }
+
+    /**
+     * Get entity types that can be offered in pickers (picker => true).
+     *
+     * @return array<string, array>
+     */
+    public function pickable(): array
+    {
+        $types = $this->buildRegistry();
+        $pickable = array();
+        foreach ($types as $key => $def) {
+            if (!empty($def['picker'])) {
+                $pickable[$key] = $def;
+            }
+        }
+        return $pickable;
+    }
+
+    /**
+     * Human labels for registered types (type => title).
+     *
+     * @return array<string, string>
+     */
+    public function typeLabels(): array
+    {
+        $types = $this->buildRegistry();
+        $labels = array();
+        foreach ($types as $key => $def) {
+            $labels[$key] = $def['title'];
+        }
+        return $labels;
+    }
+
+    /**
+     * Link roles valid for one entity type.
+     *
+     * @param string $entity_type Registry key
+     * @return array<string, string>
+     */
+    public function linkRolesFor(string $entity_type): array
+    {
+        $roles = $this->linkRoles();
+        return isset($roles[$entity_type]) ? $roles[$entity_type] : array();
+    }
+
+    /**
+     * Default link roles when type has no declared roles.
+     *
+     * @return array<string, string>
+     */
+    public function defaultLinkRoles(): array
+    {
+        return array('reference' => 'Reference');
+    }
 }
