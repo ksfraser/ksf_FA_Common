@@ -35,15 +35,15 @@ class EntityUrlResolver implements EntityUrlResolverInterface
      * @var array<string, string> Entity type key => URL pattern with {id}
      */
     private $urlPatterns = array(
-        'customer'    => '/sales/manage/customers.php?customer_id={id}',
+        'customer'    => '/sales/manage/customers.php?debtor_no={id}',
         'supplier'    => '/purchasing/manage/suppliers.php?supplier_id={id}',
         'item'        => '/items/manage/items.php?stock_id={id}',
         'invoice'     => '/sales/view/view_invoice.php?trans_no={id}&trans_type=10',
-        'sales_order' => '/sales/view/view_sales_order.php?order_no={id}&trans_type=20',
-        'purchase_order' => '/purchasing/view/view_purch_order.php?order_no={id}&trans_type=25',
-        'payment'     => '/bank/bank_payment_view.php?trans_no={id}&trans_type=19',
-        'receipt'     => '/bank/bank_receipt_view.php?trans_no={id}&trans_type=20',
-        'credit_note' => '/sales/view/view_sales_credit_note.php?credit_note_no={id}&trans_type=21',
+        'sales_order' => '/sales/view/view_sales_order.php?trans_no={id}&trans_type=20',
+        'purchase_order' => '/purchasing/view/view_po.php?trans_no={id}',
+        'payment'     => '/bank/bank_payment_view.php?trans_no={id}',
+        'receipt'     => '/sales/view/view_receipt.php?trans_no={id}',
+        'credit_note' => '/sales/view/view_credit.php?trans_no={id}&trans_type=21',
         'contact'     => '/crm/crm_contacts.php?contact_id={id}',
         'meeting'     => '/crm/meeting_view.php?id={id}',
         'opportunity' => '/crm/opportunity_view.php?id={id}',
