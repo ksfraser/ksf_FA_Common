@@ -175,6 +175,7 @@ class EntityRegistry
     public function linkRolesFor(string $entity_type): array
     {
         $roles = $this->linkRoles();
+        error_log("DEBUG linkRolesFor(" . $entity_type . ") = " . json_encode($roles[$entity_type] ?? []));
         return isset($roles[$entity_type]) ? $roles[$entity_type] : array();
     }
 
