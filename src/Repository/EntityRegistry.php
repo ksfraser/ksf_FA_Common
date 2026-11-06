@@ -80,6 +80,7 @@ class EntityRegistry
         return array(
             'customer' => array(
                 'source_customer' => 'Source Customer',
+                'regarding' => 'Regarding',
                 'reference' => 'Reference',
             ),
             'supplier' => array(
