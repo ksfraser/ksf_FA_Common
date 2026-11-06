@@ -209,6 +209,7 @@ final class FaContactResolver implements ContactResolverInterface
         $this->ensureNativeFunctions();
 
         $row = $this->callFa('get_crm_contact', [$contactId]);
+        ksf_log('square', 'debug', 'get_crm_contact('.$contactId.') result', ['row' => $row, 'is_array' => is_array($row), 'has_person_id' => is_array($row) && isset($row['person_id'])]);
         if (!\is_array($row) || !isset($row['person_id'])) {
             return null;
         }
