@@ -209,26 +209,44 @@ final class FaContactResolver implements ContactResolverInterface
         $this->ensureNativeFunctions();
 
         $row = $this->callFa('get_crm_contact', [$contactId]);
-        ksf_log('square', 'debug', 'get_crm_contact('.$contactId.') result', ['row' => $row, 'is_array' => is_array($row), 'has_person_id' => is_array($row) && isset($row['person_id'])]);
-        if (!\is_array($row) || !isset($row['person_id'])) {
-            return null;
+        if (\is_array($row) && isset($row['person_id'])) {
+            // get_crm_contact() returns t.type, t.action, p.*, r.person_id, r.id —
+            // so 'id' is the CONTACT id and 'person_id' is the PERSON id.
+            return Contact::fromArray([
+                'id'         => $row['person_id'],
+                'name'       => $row['name'] ?? '',
+                'name2'      => $row['name2'] ?? '',
+                'email'      => $row['email'] ?? '',
+                'phone'      => $row['phone'] ?? '',
+                'ref'        => $row['ref'] ?? '',
+                'address'    => $row['address'] ?? '',
+                'type'       => $row['type'] ?? null,
+                'action'     => $row['action'] ?? null,
+                'contact_id' => $row['id'] ?? null,
+                'inactive'   => $row['inactive'] ?? false,
+            ]);
         }
 
-        // get_crm_contact() returns t.type, t.action, p.*, r.person_id, r.id —
-        // so 'id' is the CONTACT id and 'person_id' is the PERSON id.
-        return Contact::fromArray([
-            'id'         => $row['person_id'],
-            'name'       => $row['name'] ?? '',
-            'name2'      => $row['name2'] ?? '',
-            'email'      => $row['email'] ?? '',
-            'phone'      => $row['phone'] ?? '',
-            'ref'        => $row['ref'] ?? '',
-            'address'    => $row['address'] ?? '',
-            'type'       => $row['type'] ?? null,
-            'action'     => $row['action'] ?? null,
-            'contact_id' => $row['id'] ?? null,
-            'inactive'   => $row['inactive'] ?? false,
-        ]);
+        // Fallback: maybe the ID is actually a person_id (crm_persons.id),
+        // not a contact relation id (crm_contacts.id). Try person lookup directly.
+        $person = $this->callFa('get_crm_person', [$contactId]);
+        if (\is_array($person) && isset($person['id'])) {
+            return Contact::fromArray([
+                'id'         => $person['id'],
+                'name'       => $person['name'] ?? '',
+                'name2'      => $person['name2'] ?? '',
+                'email'      => $person['email'] ?? '',
+                'phone'      => $person['phone'] ?? '',
+                'ref'        => $person['ref'] ?? '',
+                'address'    => $person['address'] ?? '',
+                'type'       => null,
+                'action'     => null,
+                'contact_id' => null,
+                'inactive'   => $person['inactive'] ?? false,
+            ]);
+        }
+
+        return null;
     }
 
     /**
