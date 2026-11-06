@@ -43,6 +43,11 @@ use ksfraser\FrontAccounting\Common\ContactResolver\Contract\ContactResolverInte
 /**
  * Hook-dispatching contact resolver.
  *
+ * All operations are delegated to the injected ContactResolverInterface
+ * fallback (FaContactResolver by default).  FaContactResolver internally
+ * delegates person-only operations to FaPersonResolver, so the split between
+ * person and contact resolution lives entirely inside the FA implementation.
+ *
  * @package ksfraser\FrontAccounting\Common\ContactResolver
  * @since   2.2.0
  */

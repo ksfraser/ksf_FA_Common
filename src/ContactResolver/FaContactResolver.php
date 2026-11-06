@@ -61,16 +61,36 @@ use ksfraser\FrontAccounting\Common\ContactResolver\Contract\ContactResolverInte
 /**
  * Contact resolver backed by FA's native CRM functions.
  *
+ * Person-only operations (findById, findByEmail, search, listContactCategoryIds)
+ * are delegated to FaPersonResolver.  Contact-relation operations
+ * (findContactById, findByCustomer, findByEntity) are handled here directly
+ * because they need the crm_contacts relation data that get_crm_contact() and
+ * get_crm_persons() provide.
+ *
  * @package ksfraser\FrontAccounting\Common\ContactResolver
  * @since   2.2.0
  */
 final class FaContactResolver implements ContactResolverInterface
 {
+    /** @var FaPersonResolver Person-only resolver used internally */
+    private $personResolver;
+
     /** @var bool Whether the native CRM include has already been attempted */
     private static $includeAttempted = false;
 
     /**
+     * @param FaPersonResolver|null $personResolver Person resolver to delegate
+     *        to. Defaults to a new FaPersonResolver.
+     */
+    public function __construct(?FaPersonResolver $personResolver = null)
+    {
+        $this->personResolver = $personResolver !== null ? $personResolver : new FaPersonResolver();
+    }
+
+    /**
      * Resolve one person (contact) by its person id.
+     *
+     * Delegated to FaPersonResolver — person-only lookup, no relation context.
      *
      * @param int $personId Person id
      *
@@ -78,28 +98,13 @@ final class FaContactResolver implements ContactResolverInterface
      */
     public function findById(int $personId): ?Contact
     {
-        if ($personId <= 0) {
-            return null;
-        }
-
-        $this->ensureNativeFunctions();
-
-        $row = $this->callFa('get_crm_person', [$personId]);
-        if (!\is_array($row) || !isset($row['id'])) {
-            return null;
-        }
-
-        $row['contact_id'] = null;
-
-        return Contact::fromArray($row);
+        return $this->personResolver->findById($personId);
     }
 
     /**
      * Resolve every person whose email address matches.
      *
-     * See the class docblock: FA has no native person-by-email lookup, so this
-     * scans the native relation query (get_crm_persons) and matches on email.
-     * People with no contact relation are not visible to the native API.
+     * Delegated to FaPersonResolver.
      *
      * @param string $email           Email address to match
      * @param bool   $includeInactive Include people flagged inactive
@@ -108,26 +113,37 @@ final class FaContactResolver implements ContactResolverInterface
      */
     public function findByEmail(string $email, bool $includeInactive = false): array
     {
-        $email = trim($email);
-        if ($email === '') {
-            return [];
-        }
+        return $this->personResolver->findByEmail($email, $includeInactive);
+    }
 
-        $needle = strtolower($email);
-        $found  = [];
+    /**
+     * Search people by name, email or phone.
+     *
+     * Delegated to FaPersonResolver.
+     *
+     * @param string $query          Search term
+     * @param int    $limit          Maximum rows to return
+     * @param bool   $includeInactive Include people flagged inactive
+     *
+     * @return Contact[] Matching people (empty when none)
+     */
+    public function search(string $query, int $limit = 20, bool $includeInactive = false): array
+    {
+        return $this->personResolver->search($query, $limit, $includeInactive);
+    }
 
-        foreach ($this->personRows() as $row) {
-            if (strtolower((string) ($row['email'] ?? '')) !== $needle) {
-                continue;
-            }
-            $contact = Contact::fromArray($row);
-            if (!$includeInactive && $contact->isInactive()) {
-                continue;
-            }
-            $found[] = $contact;
-        }
-
-        return $found;
+    /**
+     * Return the contact CATEGORY ids of a person.
+     *
+     * Delegated to FaPersonResolver.
+     *
+     * @param int $personId Person id
+     *
+     * @return int[] Category ids (empty when the person has no contacts)
+     */
+    public function listContactCategoryIds(int $personId): array
+    {
+        return $this->personResolver->listContactCategoryIds($personId);
     }
 
     /**
@@ -212,107 +228,6 @@ final class FaContactResolver implements ContactResolverInterface
             'contact_id' => $row['id'] ?? null,
             'inactive'   => $row['inactive'] ?? false,
         ]);
-    }
-
-    /**
-     * Return the contact CATEGORY ids of a person.
-     *
-     * @param int $personId Person id
-     *
-     * @return int[] Category ids (empty when the person has no contacts)
-     */
-    public function listContactCategoryIds(int $personId): array
-    {
-        if ($personId <= 0) {
-            return [];
-        }
-
-        $this->ensureNativeFunctions();
-
-        $ids = $this->callFa('get_person_contacts', [$personId]);
-        if (!\is_array($ids)) {
-            return [];
-        }
-
-        $categories = [];
-        foreach ($ids as $id) {
-            if (is_numeric($id)) {
-                $categories[] = (int) $id;
-            }
-        }
-
-        return $categories;
-    }
-
-    /**
-     * Search people by name, email or phone.
-     *
-     * @param string $query          Search term
-     * @param int    $limit          Maximum rows to return
-     * @param bool   $includeInactive Include people flagged inactive
-     *
-     * @return Contact[] Matching people (empty when none)
-     */
-    public function search(string $query, int $limit = 20, bool $includeInactive = false): array
-    {
-        $query = trim($query);
-        if ($query === '' || $limit <= 0) {
-            return [];
-        }
-
-        $needle = strtolower($query);
-        $found  = [];
-
-        foreach ($this->personRows() as $row) {
-            if (!$this->matches($row, $needle)) {
-                continue;
-            }
-            $contact = Contact::fromArray($row);
-            if (!$includeInactive && $contact->isInactive()) {
-                continue;
-            }
-            $found[] = $contact;
-            if (\count($found) >= $limit) {
-                break;
-            }
-        }
-
-        return $found;
-    }
-
-    /**
-     * Every person the native relation query can see, one row per person.
-     *
-     * @return array<int, array> Person rows
-     */
-    private function personRows(): array
-    {
-        $this->ensureNativeFunctions();
-
-        $result = $this->callFa('get_crm_persons', [null, null, null, null, true]);
-
-        return $this->rowsFrom($result);
-    }
-
-    /**
-     * Whether a person row matches a lower-cased search term.
-     *
-     * @param array  $row    Person row
-     * @param string $needle Lower-cased search term
-     *
-     * @return bool
-     */
-    private function matches(array $row, string $needle): bool
-    {
-        $fields = ['name', 'name2', 'email', 'phone', 'phone2', 'ref'];
-        foreach ($fields as $field) {
-            $value = (string) ($row[$field] ?? '');
-            if ($value !== '' && strpos(strtolower($value), $needle) !== false) {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     /**
