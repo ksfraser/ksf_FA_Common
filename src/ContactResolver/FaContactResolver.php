@@ -227,9 +227,16 @@ final class FaContactResolver implements ContactResolverInterface
             ]);
         }
 
-        // Fallback: maybe the ID is actually a person_id (crm_persons.id),
-        // not a contact relation id (crm_contacts.id). Try person lookup directly.
-        $person = $this->callFa('get_crm_person', [$contactId]);
+        // Fallback: get_crm_contact may fail if the contact relation row exists
+        // but the join fails, or if there's a data issue. Try querying
+        // crm_contacts directly for the relation id, then look up the person.
+        $this->log('info', 'get_crm_contact('.$contactId.') returned nothing, trying fallback lookup');
+        $personId = $this->findPersonIdByContactRelationId($contactId);
+        if ($personId === null) {
+            return null;
+        }
+
+        $person = $this->callFa('get_crm_person', [$personId]);
         if (\is_array($person) && isset($person['id'])) {
             return Contact::fromArray([
                 'id'         => $person['id'],
@@ -241,7 +248,7 @@ final class FaContactResolver implements ContactResolverInterface
                 'address'    => $person['address'] ?? '',
                 'type'       => null,
                 'action'     => null,
-                'contact_id' => null,
+                'contact_id' => $contactId,
                 'inactive'   => $person['inactive'] ?? false,
             ]);
         }
@@ -250,12 +257,37 @@ final class FaContactResolver implements ContactResolverInterface
     }
 
     /**
-     * Call a native FA function defensively.
+     * Find person_id from crm_contacts by contact relation id.
      *
-     * A missing function, or one that throws (FA's get_crm_person() writes to
-     * an array offset of a false result when the id does not exist, which is a
-     * fatal on PHP 8), must never take a page down: the resolver degrades to
-     * "no contact".
+     * Used as fallback when get_crm_contact() fails but the contact relation
+     * row exists in the database.
+     *
+     * @param int $contactId Contact relation id (crm_contacts.id)
+     * @return int|null Person id (crm_persons.id) or null
+     */
+    private function findPersonIdByContactRelationId(int $contactId): ?int
+    {
+        if (!function_exists('db_query') || !function_exists('db_fetch')) {
+            return null;
+        }
+
+        $sql = "SELECT person_id FROM " . TB_PREF . "crm_contacts
+                WHERE id = " . (int)$contactId . " LIMIT 1";
+        $result = @db_query($sql);
+        if (!$result) {
+            return null;
+        }
+
+        $row = db_fetch($result);
+        if ($row && isset($row['person_id'])) {
+            return (int)$row['person_id'];
+        }
+
+        return null;
+    }
+
+    /**
+     * Call a native FA function defensively.
      *
      * @param string $function  Native function name
      * @param array  $arguments Call arguments
@@ -277,51 +309,7 @@ final class FaContactResolver implements ContactResolverInterface
     }
 
     /**
-     * Normalise a native result into a list of rows.
-     *
-     * get_crm_persons() returns a db result set (an object) that must be read
-     * with FA's db_fetch(); get_customer_contacts() returns a plain array of
-     * rows.  Both are accepted.
-     *
-     * @param mixed $result Native return value
-     *
-     * @return array<int, array> Rows
-     */
-    private function rowsFrom($result): array
-    {
-        if (\is_array($result)) {
-            $rows = [];
-            foreach ($result as $row) {
-                if (\is_array($row)) {
-                    $rows[] = $row;
-                }
-            }
-
-            return $rows;
-        }
-
-        if (\is_object($result) && function_exists('db_fetch')) {
-            $rows = [];
-            while (($row = db_fetch($result)) !== false && $row !== null) {
-                if (\is_array($row)) {
-                    $rows[] = $row;
-                }
-            }
-
-            return $rows;
-        }
-
-        return [];
-    }
-
-    /**
      * Make sure FA's native CRM functions are loaded.
-     *
-     * `includes/db/crm_contacts_db.inc` is NOT auto-loaded by
-     * `includes/main.inc`; a module calling these functions must include it.
-     * The file is a pure function-definition file, so a guarded include_once is
-     * safe.  Outside FA (no $path_to_root) this is a no-op and every lookup
-     * simply returns "no contact".
      *
      * @return void
      */
