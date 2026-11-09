@@ -37,7 +37,7 @@ class EntityUrlResolver implements EntityUrlResolverInterface
     private $urlPatterns = array(
         'customer'    => '/sales/manage/customers.php?debtor_no={id}',
         'supplier'    => '/purchasing/manage/suppliers.php?supplier_id={id}',
-        'item'        => '/items/manage/items.php?stock_id={id}',
+        'item'        => '/inventory/manage/items.php?stock_id={id}',
         'invoice'     => '/sales/view/view_invoice.php?trans_no={id}&trans_type=10',
         'sales_order' => '/sales/view/view_sales_order.php?trans_no={id}&trans_type=20',
         'purchase_order' => '/purchasing/view/view_po.php?trans_no={id}',
