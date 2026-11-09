@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace ksfraser\FrontAccounting\Common\Repository;
 
+use ksfraser\FrontAccounting\Common\Contract\LinkRolesContract;
+use ksfraser\FrontAccounting\Common\Traits\LinkRolesTrait;
+
 /**
  * Base entity registry for cross-module entity type definitions.
  *
@@ -12,8 +15,9 @@ namespace ksfraser\FrontAccounting\Common\Repository;
  *
  * @since 1.0.0
  */
-class EntityRegistry
+class EntityRegistry implements LinkRolesContract
 {
+    use LinkRolesTrait;
     /**
      * Build the base entity type registry.
      *
@@ -204,28 +208,5 @@ class EntityRegistry
             $labels[$key] = $def['title'];
         }
         return $labels;
-    }
-
-    /**
-     * Link roles valid for one entity type.
-     *
-     * @param string $entity_type Registry key
-     * @return array<string, string>
-     */
-    public function linkRolesFor(string $entity_type): array
-    {
-        $roles = $this->linkRoles();
-        error_log("DEBUG linkRolesFor(" . $entity_type . ") = " . json_encode($roles[$entity_type] ?? []));
-        return isset($roles[$entity_type]) ? $roles[$entity_type] : array();
-    }
-
-    /**
-     * Default link roles when type has no declared roles.
-     *
-     * @return array<string, string>
-     */
-    public function defaultLinkRoles(): array
-    {
-        return array('reference' => 'Reference');
     }
 }
