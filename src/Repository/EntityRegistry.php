@@ -44,7 +44,7 @@ class EntityRegistry
                 'title'    => 'Item',
                 'table'    => 'stock_master',
                 'pk'       => 'stock_id',
-                'label'    => 'description',
+                'label'    => 'stock_id',
                 'module'   => '',
                 'picker'   => true,
                 'multiple' => true,
@@ -53,7 +53,7 @@ class EntityRegistry
                 'title'    => 'Sales Order',
                 'table'    => 'sales_orders',
                 'pk'       => 'order_no',
-                'label'    => 'reference',
+                'label'    => 'order_no',
                 'module'   => '',
                 'picker'   => false,
                 'multiple' => true,
@@ -67,7 +67,36 @@ class EntityRegistry
                 'picker'   => false,
                 'multiple' => true,
             ),
+            'invoice' => array(
+                'title'    => 'Invoice',
+                'table'    => 'debtor_trans',
+                'pk'       => 'trans_no',
+                'label'    => 'trans_no',
+                'module'   => '',
+                'picker'   => false,
+                'multiple' => true,
+                'where'    => "type = " . (defined('ST_SALESINVOICE') ? ST_SALESINVOICE : 10),
+            ),
+            'contact' => array(
+                'title'    => 'Contact',
+                'table'    => 'crm_persons',
+                'pk'       => 'id',
+                'label'    => 'name',
+                'module'   => '',
+                'picker'   => true,
+                'multiple' => true,
+            ),
         );
+
+        if (function_exists('hook_invoke_all')) {
+            $data = array('types' => $types);
+            hook_invoke_all('RELATED_ENTITY_TYPES', $data);
+            if (isset($data['types']) && is_array($data['types'])) {
+                $types = $data['types'];
+            }
+        }
+
+        return $types;
     }
 
     /**
@@ -98,6 +127,16 @@ class EntityRegistry
             ),
             'purchase_order' => array(
                 'source_po' => 'Source PO',
+                'reference' => 'Reference',
+            ),
+            'invoice' => array(
+                'source_invoice' => 'Source Invoice',
+                'square_invoice' => 'Square Invoice',
+                'reference' => 'Reference',
+            ),
+            'contact' => array(
+                'invoice_contact' => 'Invoice Contact',
+                'with' => 'With',
                 'reference' => 'Reference',
             ),
         );
