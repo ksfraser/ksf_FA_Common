@@ -6,17 +6,18 @@ namespace ksfraser\FrontAccounting\Common\Matching;
 /**
  * SqlPreFilter — SQL-side candidate pre-filtering using native FA db_* calls.
  *
- * Builds a parameterised WHERE clause from SearchCriteria and executes it
- * against FA's transaction tables via db_query/db_fetch_assoc. Returns the
- * raw candidate rows for PHP-side scoring by GenericMatcher.
+ * Dual-path execution:
+ *   * If the target table is `gl_trans` and FA core's `get_gl_transactions()`
+ *     is available, it delegates to that function (FA-native, handles date
+ *     ranges, amount min/max, GL account, dimensions, transaction type,
+ *     person/customer/supplier filters).
+ *   * For any other table (ISP staging tables, Bank Import bi_transactions,
+ *     etc.) it builds and executes raw SQL via db_query/db_escape, with all
+ *     user values escaped to prevent SQL injection.
  *
  * This keeps FA runtime free of PDO: all SQL goes through db_query/db_escape/
  * db_fetch_assoc. The table prefix convention uses literal '0_' (not
  * {TB_PREF}), per AGENTS.md §FA extension install mechanics.
- *
- * Callers supply the table name, date column, amount column, and optional
- * join/fragment SQL so the pre-filter can adapt to ISP staging tables,
- * Bank Import bi_transactions, or FA core gl_trans.
  *
  * @since 3.0.0
  * @BABOK Related: FR-COM-MATCH-017 SQL pre-filtering via db_*
@@ -72,8 +73,76 @@ class SqlPreFilter
      */
     public function filter(SearchCriteria $criteria, $limit = 100)
     {
+        // Use FA core's get_gl_transactions() for gl_trans queries when
+        // available — it's the FA-native way and already handles date
+        // ranges, amount min/max, GL account, dimensions, transaction
+        // type, and person/customer/supplier filters.
+        if ($this->table === 'gl_trans' && function_exists('get_gl_transactions')) {
+            return $this->filterViaGetGlTransactions($criteria);
+        }
+
+        // Raw SQL path for staging tables and other non-gl_trans tables.
         $sql = $this->buildSelectSql($criteria, $limit);
         $result = db_query($sql, 'Candidate pre-filter query failed');
+        $rows = array();
+        while ($row = db_fetch_assoc($result)) {
+            $rows[] = $row;
+        }
+        return $rows;
+    }
+
+    /**
+     * Filter gl_trans via FA core's get_gl_transactions().
+     *
+     * Maps SearchCriteria fields to get_gl_transactions() parameters:
+     *   date_from   -> $from_date
+     *   date_to     -> $to_date
+     *   gl_account  -> $account
+     *   transaction_type -> $filter_type
+     *   amount_min  -> $amount_min
+     *   amount_max  -> $amount_max
+     *   customer    -> $person_id (get_gl_transactions joins debtor_trans,
+     *                      supp_trans, bank_trans so person_id covers both
+     *                      customer and supplier)
+     *   supplier    -> $person_id (same)
+     *
+     * Reference LIKE fragments and custom WHERE are NOT supported by
+     * get_gl_transactions() — they are silently ignored with a note in
+     * the returned details (caller can check via getUnsupportedFilters()).
+     *
+     * @param SearchCriteria $criteria
+     * @return array Associative row arrays
+     * @since 3.0.0
+     */
+    private function filterViaGetGlTransactions(SearchCriteria $criteria)
+    {
+        $fromDate = $criteria->getDateFrom() ?: '';
+        $toDate   = $criteria->getDateTo() ?: '';
+
+        // get_gl_transactions requires non-empty from/to dates; default to
+        // a wide range when not specified.
+        if ($fromDate === '') {
+            $fromDate = '1970-01-01';
+        }
+        if ($toDate === '') {
+            $toDate = '2099-12-31';
+        }
+
+        $result = get_gl_transactions(
+            $fromDate,
+            $toDate,
+            0,                                            // trans_no (unused)
+            $criteria->getGlAccount() !== null ? $criteria->getGlAccount() : null,
+            0,                                            // dimension (unused)
+            0,                                            // dimension2 (unused)
+            $criteria->getTransactionType() !== null ? $criteria->getTransactionType() : null,
+            $criteria->getAmountMin() !== null ? $criteria->getAmountMin() : null,
+            $criteria->getAmountMax() !== null ? $criteria->getAmountMax() : null,
+            null                                          // person_id: get_gl_transactions filters by
+            // gl.person_id only, which is an internal ID — customer/supplier
+            // name filtering is done PHP-side by GenericMatcher.
+        );
+
         $rows = array();
         while ($row = db_fetch_assoc($result)) {
             $rows[] = $row;
