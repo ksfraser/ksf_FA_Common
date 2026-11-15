@@ -10,7 +10,7 @@ namespace ksfraser\FrontAccounting\Common\Matching;
  *   * If the target table is `gl_trans` and FA core's `get_gl_transactions()`
  *     is available, it delegates to that function (FA-native, handles date
  *     ranges, amount min/max, GL account, dimensions, transaction type,
- *     person/customer/supplier filters).
+ *     person_id).
  *   * For any other table (ISP staging tables, Bank Import bi_transactions,
  *     etc.) it builds and executes raw SQL via db_query/db_escape, with all
  *     user values escaped to prevent SQL injection.
@@ -76,7 +76,7 @@ class SqlPreFilter
         // Use FA core's get_gl_transactions() for gl_trans queries when
         // available — it's the FA-native way and already handles date
         // ranges, amount min/max, GL account, dimensions, transaction
-        // type, and person/customer/supplier filters.
+        // type, and person_id.
         if ($this->table === 'gl_trans' && function_exists('get_gl_transactions')) {
             return $this->filterViaGetGlTransactions($criteria);
         }
@@ -95,20 +95,18 @@ class SqlPreFilter
      * Filter gl_trans via FA core's get_gl_transactions().
      *
      * Maps SearchCriteria fields to get_gl_transactions() parameters:
-     *   date_from   -> $from_date
-     *   date_to     -> $to_date
-     *   gl_account  -> $account
+     *   date_from     -> $from_date
+     *   date_to       -> $to_date
+     *   gl_account    -> $account
      *   transaction_type -> $filter_type
-     *   amount_min  -> $amount_min
-     *   amount_max  -> $amount_max
-     *   customer    -> $person_id (get_gl_transactions joins debtor_trans,
-     *                      supp_trans, bank_trans so person_id covers both
-     *                      customer and supplier)
-     *   supplier    -> $person_id (same)
+     *   amount_min    -> $amount_min
+     *   amount_max    -> $amount_max
+     *   person_id     -> $person_id (filters gl.person_id = 0_crm_persons.id)
      *
-     * Reference LIKE fragments and custom WHERE are NOT supported by
-     * get_gl_transactions() — they are silently ignored with a note in
-     * the returned details (caller can check via getUnsupportedFilters()).
+     * Note: get_gl_transactions() only accepts a single person_id for exact
+     * matching. Customer/supplier name fragments, email, name, and phone
+     * filters are NOT supported by get_gl_transactions() and are applied
+     * PHP-side by GenericMatcher after candidate retrieval.
      *
      * @param SearchCriteria $criteria
      * @return array Associative row arrays
@@ -138,9 +136,7 @@ class SqlPreFilter
             $criteria->getTransactionType() !== null ? $criteria->getTransactionType() : null,
             $criteria->getAmountMin() !== null ? $criteria->getAmountMin() : null,
             $criteria->getAmountMax() !== null ? $criteria->getAmountMax() : null,
-            null                                          // person_id: get_gl_transactions filters by
-            // gl.person_id only, which is an internal ID — customer/supplier
-            // name filtering is done PHP-side by GenericMatcher.
+            $criteria->getPersonId()                      // person_id: exact match on gl.person_id
         );
 
         $rows = array();
@@ -229,6 +225,14 @@ class SqlPreFilter
             );
         }
 
+        // Person id (exact match on 0_crm_persons.id)
+        if ($criteria->getPersonId() !== null) {
+            $conditions[] = sprintf(
+                'person_id = %d',
+                (int)$criteria->getPersonId()
+            );
+        }
+
         // Customer name fragment (LIKE)
         if ($criteria->getCustomer() !== null) {
             $conditions[] = sprintf(
@@ -242,6 +246,30 @@ class SqlPreFilter
             $conditions[] = sprintf(
                 'supplier_name LIKE %s',
                 db_escape('%' . $criteria->getSupplier() . '%')
+            );
+        }
+
+        // Email fragment (LIKE)
+        if ($criteria->getEmail() !== null) {
+            $conditions[] = sprintf(
+                'email LIKE %s',
+                db_escape('%' . $criteria->getEmail() . '%')
+            );
+        }
+
+        // Name fragment (LIKE)
+        if ($criteria->getName() !== null) {
+            $conditions[] = sprintf(
+                'name LIKE %s',
+                db_escape('%' . $criteria->getName() . '%')
+            );
+        }
+
+        // Phone fragment (LIKE)
+        if ($criteria->getPhone() !== null) {
+            $conditions[] = sprintf(
+                'phone LIKE %s',
+                db_escape('%' . $criteria->getPhone() . '%')
             );
         }
 

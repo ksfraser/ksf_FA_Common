@@ -12,9 +12,12 @@ namespace ksfraser\FrontAccounting\Common\Matching;
  *
  * Field mappings translate module-specific column names into the matcher's
  * canonical field names:
+ *   person_id   → person id (0_crm_persons.id)
+ *   email       → email address
  *   amount      → monetary value for amount scoring
  *   date        → transaction date for date scoring
  *   name        → customer/supplier name for name scoring
+ *   phone       → phone number for phone scoring
  *   reference   → transaction reference/invoice no for reference scoring
  *   gl_account  → GL account code for account scoring
  *
@@ -26,15 +29,22 @@ namespace ksfraser\FrontAccounting\Common\Matching;
  * @BABOK Related: FR-COM-MATCH-002 configurable scoring weights
  * @BABOK Related: FR-COM-MATCH-003 configurable auto-approve threshold
  * @BABOK Related: FR-COM-MATCH-004 configurable review threshold
+ * @BABOK Related: FR-COM-MATCH-018 person_id filtering
+ * @BABOK Related: FR-COM-MATCH-019 email filtering
+ * @BABOK Related: FR-COM-MATCH-020 name filtering
+ * @BABOK Related: FR-COM-MATCH-021 phone filtering
  * @BABOK Related: NFR-COM-MATCH-001 PHP 7.3 compatible
  */
 class MatchingConfig
 {
     /** Default scoring weights (sum to 1.0) */
-    const DEFAULT_WEIGHT_AMOUNT    = 0.40;
-    const DEFAULT_WEIGHT_DATE      = 0.25;
-    const DEFAULT_WEIGHT_NAME      = 0.25;
-    const DEFAULT_WEIGHT_REFERENCE = 0.10;
+    const DEFAULT_WEIGHT_PERSON_ID   = 0.25;
+    const DEFAULT_WEIGHT_EMAIL       = 0.20;
+    const DEFAULT_WEIGHT_AMOUNT      = 0.10;
+    const DEFAULT_WEIGHT_DATE        = 0.05;
+    const DEFAULT_WEIGHT_NAME        = 0.20;
+    const DEFAULT_WEIGHT_PHONE       = 0.10;
+    const DEFAULT_WEIGHT_REFERENCE   = 0.10;
 
     const DEFAULT_AUTO_APPROVE = 0.95;
     const DEFAULT_REVIEW       = 0.80;
@@ -44,19 +54,25 @@ class MatchingConfig
 
     /** @var array Field name mapping: canonical => module-specific column */
     private $fieldMap = array(
-        'amount'    => 'amount',
-        'date'      => 'date',
-        'name'      => 'name',
-        'reference' => 'reference',
-        'gl_account'=> 'gl_account',
+        'person_id'  => 'person_id',
+        'email'      => 'email',
+        'amount'     => 'amount',
+        'date'       => 'date',
+        'name'       => 'name',
+        'phone'      => 'phone',
+        'reference'  => 'reference',
+        'gl_account' => 'gl_account',
     );
 
     /** @var array Scoring weights: field => weight (0.0–1.0) */
     private $weights = array(
-        'amount'    => self::DEFAULT_WEIGHT_AMOUNT,
-        'date'      => self::DEFAULT_WEIGHT_DATE,
-        'name'      => self::DEFAULT_WEIGHT_NAME,
-        'reference' => self::DEFAULT_WEIGHT_REFERENCE,
+        'person_id'  => self::DEFAULT_WEIGHT_PERSON_ID,
+        'email'      => self::DEFAULT_WEIGHT_EMAIL,
+        'amount'     => self::DEFAULT_WEIGHT_AMOUNT,
+        'date'       => self::DEFAULT_WEIGHT_DATE,
+        'name'       => self::DEFAULT_WEIGHT_NAME,
+        'phone'      => self::DEFAULT_WEIGHT_PHONE,
+        'reference'  => self::DEFAULT_WEIGHT_REFERENCE,
     );
 
     /** @var float Auto-approve threshold (0.0–1.0) */
@@ -118,31 +134,49 @@ class MatchingConfig
         return $this->fieldMap;
     }
 
-    /** @return string Field name for amount, or null if unmapped */
+    /** @return string|null Field name for person_id, or null if unmapped */
+    public function getPersonIdField()
+    {
+        return isset($this->fieldMap['person_id']) ? $this->fieldMap['person_id'] : null;
+    }
+
+    /** @return string|null Field name for email, or null if unmapped */
+    public function getEmailField()
+    {
+        return isset($this->fieldMap['email']) ? $this->fieldMap['email'] : null;
+    }
+
+    /** @return string|null Field name for amount, or null if unmapped */
     public function getAmountField()
     {
         return isset($this->fieldMap['amount']) ? $this->fieldMap['amount'] : null;
     }
 
-    /** @return string Field name for date, or null if unmapped */
+    /** @return string|null Field name for date, or null if unmapped */
     public function getDateField()
     {
         return isset($this->fieldMap['date']) ? $this->fieldMap['date'] : null;
     }
 
-    /** @return string Field name for name, or null if unmapped */
+    /** @return string|null Field name for name, or null if unmapped */
     public function getNameField()
     {
         return isset($this->fieldMap['name']) ? $this->fieldMap['name'] : null;
     }
 
-    /** @return string Field name for reference, or null if unmapped */
+    /** @return string|null Field name for phone, or null if unmapped */
+    public function getPhoneField()
+    {
+        return isset($this->fieldMap['phone']) ? $this->fieldMap['phone'] : null;
+    }
+
+    /** @return string|null Field name for reference, or null if unmapped */
     public function getReferenceField()
     {
         return isset($this->fieldMap['reference']) ? $this->fieldMap['reference'] : null;
     }
 
-    /** @return string Field name for GL account, or null if unmapped */
+    /** @return string|null Field name for GL account, or null if unmapped */
     public function getGlAccountField()
     {
         return isset($this->fieldMap['gl_account']) ? $this->fieldMap['gl_account'] : null;

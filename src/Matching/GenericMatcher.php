@@ -16,16 +16,22 @@ namespace ksfraser\FrontAccounting\Common\Matching;
  * keeps FA runtime free of PDO (db_* calls only).
  *
  * Supported scoring factors (configurable weights):
- *   amount    — monetary amount match, tolerance-based with proportional decay
- *   date      — transaction date match, day-tolerance-based with decay
- *   name      — customer/supplier name match via soundex + levenshtein ratio
- *   reference — transaction reference match via exact/substring similarity
+ *   person_id   — exact match on 0_crm_persons.id (strongest signal)
+ *   email       — exact case-insensitive email match
+ *   name        — customer/supplier name match via soundex + levenshtein ratio
+ *   phone       — phone match (exact or last-7-digit)
+ *   amount      — monetary amount match, tolerance-based with proportional decay
+ *   date        — transaction date match, day-tolerance-based with decay
+ *   reference   — transaction reference match via exact/substring similarity
  *
  * @since 3.0.0
  * @BABOK Related: FR-COM-MATCH-013 amount scoring
  * @BABOK Related: FR-COM-MATCH-014 date scoring
  * @BABOK Related: FR-COM-MATCH-015 name scoring
  * @BABOK Related: FR-COM-MATCH-016 reference scoring
+ * @BABOK Related: FR-COM-MATCH-022 person_id scoring
+ * @BABOK Related: FR-COM-MATCH-023 email scoring
+ * @BABOK Related: FR-COM-MATCH-024 phone scoring
  * @BABOK Related: NFR-COM-MATCH-002 weighted scoring engine
  */
 class GenericMatcher
@@ -45,8 +51,9 @@ class GenericMatcher
     /**
      * Match a staged record against candidate existing records.
      *
-     * Each candidate is scored on the enabled factors (amount, date, name,
-     * reference). Candidates are returned sorted by confidence descending.
+     * Each candidate is scored on the enabled factors (person_id, email, name,
+     * phone, amount, date, reference). Candidates are returned sorted by
+     * confidence descending.
      *
      * @param array $stagedRecord   The staged record (module-specific field names)
      * @param array $candidates     Candidate records (module-specific field names)
@@ -58,9 +65,12 @@ class GenericMatcher
         $fieldMap = $this->config->getFieldMap();
         $weights  = $this->config->getWeights();
 
+        $personIdField  = $this->config->getPersonIdField();
+        $emailField     = $this->config->getEmailField();
         $amountField    = $this->config->getAmountField();
         $dateField      = $this->config->getDateField();
         $nameField      = $this->config->getNameField();
+        $phoneField     = $this->config->getPhoneField();
         $referenceField = $this->config->getReferenceField();
 
         $candidateObjects = array();
@@ -70,6 +80,32 @@ class GenericMatcher
             $fieldDetails  = array();
             $weightedScore = 0.0;
             $totalWeight   = 0.0;
+
+            // Person id scoring — exact match on 0_crm_persons.id
+            if ($personIdField !== null && isset($weights['person_id']) && $weights['person_id'] > 0) {
+                $stagedVal = isset($stagedRecord[$personIdField]) ? $stagedRecord[$personIdField] : null;
+                $candVal   = isset($candidateRecord[$personIdField]) ? $candidateRecord[$personIdField] : null;
+                if ($stagedVal !== null && $candVal !== null) {
+                    $score = $this->scorePersonId((int)$stagedVal, (int)$candVal);
+                    $fieldScores['person_id'] = $score;
+                    $fieldDetails['person_id'] = $this->personIdDetail((int)$stagedVal, (int)$candVal, $score);
+                    $weightedScore += $score * $weights['person_id'];
+                    $totalWeight += $weights['person_id'];
+                }
+            }
+
+            // Email scoring — exact case-insensitive match
+            if ($emailField !== null && isset($weights['email']) && $weights['email'] > 0) {
+                $stagedVal = isset($stagedRecord[$emailField]) ? $stagedRecord[$emailField] : null;
+                $candVal   = isset($candidateRecord[$emailField]) ? $candidateRecord[$emailField] : null;
+                if ($stagedVal !== null && $candVal !== null && (string)$stagedVal !== '' && (string)$candVal !== '') {
+                    $score = $this->scoreEmail((string)$stagedVal, (string)$candVal);
+                    $fieldScores['email'] = $score;
+                    $fieldDetails['email'] = $this->emailDetail((string)$stagedVal, (string)$candVal, $score);
+                    $weightedScore += $score * $weights['email'];
+                    $totalWeight += $weights['email'];
+                }
+            }
 
             // Amount scoring
             if ($amountField !== null && isset($weights['amount']) && $weights['amount'] > 0) {
@@ -107,6 +143,19 @@ class GenericMatcher
                     $fieldDetails['name'] = $this->nameDetail((string)$stagedVal, (string)$candVal, $score);
                     $weightedScore += $score * $weights['name'];
                     $totalWeight += $weights['name'];
+                }
+            }
+
+            // Phone scoring
+            if ($phoneField !== null && isset($weights['phone']) && $weights['phone'] > 0) {
+                $stagedVal = isset($stagedRecord[$phoneField]) ? $stagedRecord[$phoneField] : null;
+                $candVal   = isset($candidateRecord[$phoneField]) ? $candidateRecord[$phoneField] : null;
+                if ($stagedVal !== null && $candVal !== null && (string)$stagedVal !== '' && (string)$candVal !== '') {
+                    $score = $this->scorePhone((string)$stagedVal, (string)$candVal);
+                    $fieldScores['phone'] = $score;
+                    $fieldDetails['phone'] = $this->phoneDetail((string)$stagedVal, (string)$candVal, $score);
+                    $weightedScore += $score * $weights['phone'];
+                    $totalWeight += $weights['phone'];
                 }
             }
 
@@ -150,6 +199,62 @@ class GenericMatcher
         );
 
         return $result;
+    }
+
+    /**
+     * Score two person ids, 0.0–1.0.
+     *
+     * Exact match scores 1.0, otherwise 0.0.
+     *
+     * @param int $a
+     * @param int $b
+     * @return float
+     * @since 3.0.0
+     */
+    public function scorePersonId($a, $b)
+    {
+        return (int)$a === (int)$b ? 1.0 : 0.0;
+    }
+
+    /**
+     * Score two email addresses, 0.0–1.0.
+     *
+     * Exact case-insensitive match scores 1.0, otherwise 0.0.
+     *
+     * @param string $a
+     * @param string $b
+     * @return float
+     * @since 3.0.0
+     */
+    public function scoreEmail($a, $b)
+    {
+        return strcasecmp(trim((string)$a), trim((string)$b)) === 0 ? 1.0 : 0.0;
+    }
+
+    /**
+     * Score two phone numbers, 0.0–1.0.
+     *
+     * Exact match scores 1.0, last-7-digit match scores 0.7, otherwise 0.0.
+     *
+     * @param string $a
+     * @param string $b
+     * @return float
+     * @since 3.0.0
+     */
+    public function scorePhone($a, $b)
+    {
+        $cleanA = preg_replace('/[^0-9]/', '', (string)$a);
+        $cleanB = preg_replace('/[^0-9]/', '', (string)$b);
+        if ($cleanA === '' || $cleanB === '') {
+            return 0.0;
+        }
+        if ($cleanA === $cleanB) {
+            return 1.0;
+        }
+        if (strlen($cleanA) >= 7 && strlen($cleanB) >= 7 && substr($cleanA, -7) === substr($cleanB, -7)) {
+            return 0.7;
+        }
+        return 0.0;
     }
 
     /**
@@ -467,6 +572,42 @@ class GenericMatcher
             );
         }
         return isset($map[$char]) ? $map[$char] : '';
+    }
+
+    /**
+     * Human-readable person_id detail.
+     */
+    private function personIdDetail($a, $b, $score)
+    {
+        if ($score === 1.0) {
+            return 'person_id exact match';
+        }
+        return 'person_id mismatch';
+    }
+
+    /**
+     * Human-readable email detail.
+     */
+    private function emailDetail($a, $b, $score)
+    {
+        if ($score === 1.0) {
+            return 'email exact match';
+        }
+        return 'email mismatch';
+    }
+
+    /**
+     * Human-readable phone detail.
+     */
+    private function phoneDetail($a, $b, $score)
+    {
+        if ($score === 1.0) {
+            return 'phone exact match';
+        }
+        if ($score === 0.7) {
+            return 'phone last-7 match';
+        }
+        return 'phone mismatch';
     }
 
     /**

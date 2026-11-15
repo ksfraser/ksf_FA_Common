@@ -8,8 +8,9 @@ namespace ksfraser\FrontAccounting\Common\Matching;
  *
  * Encapsulates the search parameters that narrow the candidate set before
  * PHP-side scoring. Supports date ranges, amount bounds, GL account,
- * customer/vendor, reference fragment, and transaction type — mirroring
- * FA's Journal Inquiry and Bank Import filtering patterns.
+ * customer/vendor, reference fragment, transaction type, person_id,
+ * email, name, and phone — mirroring FA's Journal Inquiry and Bank Import
+ * filtering patterns.
  *
  * All fields are optional; unset fields impose no constraint.
  *
@@ -19,6 +20,10 @@ namespace ksfraser\FrontAccounting\Common\Matching;
  * @BABOK Related: FR-COM-MATCH-007 GL account filtering
  * @BABOK Related: FR-COM-MATCH-008 customer/vendor filtering
  * @BABOK Related: FR-COM-MATCH-009 reference fragment filtering
+ * @BABOK Related: FR-COM-MATCH-018 person_id filtering
+ * @BABOK Related: FR-COM-MATCH-019 email filtering
+ * @BABOK Related: FR-COM-MATCH-020 name filtering
+ * @BABOK Related: FR-COM-MATCH-021 phone filtering
  */
 class SearchCriteria
 {
@@ -48,6 +53,18 @@ class SearchCriteria
 
     /** @var int|null Transaction type */
     private $transactionType = null;
+
+    /** @var int|null Person id (0_crm_persons.id) */
+    private $personId = null;
+
+    /** @var string|null Email address fragment */
+    private $email = null;
+
+    /** @var string|null Person name fragment */
+    private $name = null;
+
+    /** @var string|null Phone number fragment */
+    private $phone = null;
 
     /** @var string|null Additional custom WHERE clause fragment */
     private $customWhere = null;
@@ -84,6 +101,18 @@ class SearchCriteria
         }
         if (isset($criteria['transaction_type'])) {
             $this->transactionType = (int)$criteria['transaction_type'];
+        }
+        if (isset($criteria['person_id'])) {
+            $this->personId = (int)$criteria['person_id'];
+        }
+        if (isset($criteria['email'])) {
+            $this->email = (string)$criteria['email'];
+        }
+        if (isset($criteria['name'])) {
+            $this->name = (string)$criteria['name'];
+        }
+        if (isset($criteria['phone'])) {
+            $this->phone = (string)$criteria['phone'];
         }
         if (isset($criteria['custom_where'])) {
             $this->customWhere = (string)$criteria['custom_where'];
@@ -144,6 +173,30 @@ class SearchCriteria
         return $this->transactionType;
     }
 
+    /** @return int|null Person id (0_crm_persons.id) */
+    public function getPersonId()
+    {
+        return $this->personId;
+    }
+
+    /** @return string|null */
+    public function getEmail()
+    {
+        return $this->email;
+    }
+
+    /** @return string|null */
+    public function getName()
+    {
+        return $this->name;
+    }
+
+    /** @return string|null */
+    public function getPhone()
+    {
+        return $this->phone;
+    }
+
     /** @return string|null */
     public function getCustomWhere()
     {
@@ -162,6 +215,10 @@ class SearchCriteria
             || $this->supplier !== null
             || $this->reference !== null
             || $this->transactionType !== null
+            || $this->personId !== null
+            || $this->email !== null
+            || $this->name !== null
+            || $this->phone !== null
             || $this->customWhere !== null;
     }
 
@@ -178,6 +235,10 @@ class SearchCriteria
             'supplier'         => $this->supplier,
             'reference'        => $this->reference,
             'transaction_type' => $this->transactionType,
+            'person_id'        => $this->personId,
+            'email'            => $this->email,
+            'name'             => $this->name,
+            'phone'            => $this->phone,
             'custom_where'     => $this->customWhere,
         ), function($v) { return $v !== null; });
     }
