@@ -1,0 +1,184 @@
+<?php
+declare(strict_types=1);
+
+namespace ksfraser\FrontAccounting\Common\Matching;
+
+/**
+ * SearchCriteria — filters for SQL-side candidate pre-filtering.
+ *
+ * Encapsulates the search parameters that narrow the candidate set before
+ * PHP-side scoring. Supports date ranges, amount bounds, GL account,
+ * customer/vendor, reference fragment, and transaction type — mirroring
+ * FA's Journal Inquiry and Bank Import filtering patterns.
+ *
+ * All fields are optional; unset fields impose no constraint.
+ *
+ * @since 3.0.0
+ * @BABOK Related: FR-COM-MATCH-005 date range filtering
+ * @BABOK Related: FR-COM-MATCH-006 amount min/max filtering
+ * @BABOK Related: FR-COM-MATCH-007 GL account filtering
+ * @BABOK Related: FR-COM-MATCH-008 customer/vendor filtering
+ * @BABOK Related: FR-COM-MATCH-009 reference fragment filtering
+ */
+class SearchCriteria
+{
+    /** @var string|null Earliest transaction date (Y-m-d) */
+    private $dateFrom = null;
+
+    /** @var string|null Latest transaction date (Y-m-d) */
+    private $dateTo = null;
+
+    /** @var float|null Minimum absolute amount */
+    private $amountMin = null;
+
+    /** @var float|null Maximum absolute amount */
+    private $amountMax = null;
+
+    /** @var int|null GL account code */
+    private $glAccount = null;
+
+    /** @var string|null Customer/debtor name fragment */
+    private $customer = null;
+
+    /** @var string|null Supplier name fragment */
+    private $supplier = null;
+
+    /** @var string|null Reference/invoice number fragment */
+    private $reference = null;
+
+    /** @var int|null Transaction type */
+    private $transactionType = null;
+
+    /** @var string|null Additional custom WHERE clause fragment */
+    private $customWhere = null;
+
+    /**
+     * @param array $criteria Optional key => value criteria
+     * @since 3.0.0
+     */
+    public function __construct(array $criteria = array())
+    {
+        if (isset($criteria['date_from'])) {
+            $this->dateFrom = (string)$criteria['date_from'];
+        }
+        if (isset($criteria['date_to'])) {
+            $this->dateTo = (string)$criteria['date_to'];
+        }
+        if (isset($criteria['amount_min'])) {
+            $this->amountMin = (float)$criteria['amount_min'];
+        }
+        if (isset($criteria['amount_max'])) {
+            $this->amountMax = (float)$criteria['amount_max'];
+        }
+        if (isset($criteria['gl_account'])) {
+            $this->glAccount = (int)$criteria['gl_account'];
+        }
+        if (isset($criteria['customer'])) {
+            $this->customer = (string)$criteria['customer'];
+        }
+        if (isset($criteria['supplier'])) {
+            $this->supplier = (string)$criteria['supplier'];
+        }
+        if (isset($criteria['reference'])) {
+            $this->reference = (string)$criteria['reference'];
+        }
+        if (isset($criteria['transaction_type'])) {
+            $this->transactionType = (int)$criteria['transaction_type'];
+        }
+        if (isset($criteria['custom_where'])) {
+            $this->customWhere = (string)$criteria['custom_where'];
+        }
+    }
+
+    /** @return string|null */
+    public function getDateFrom()
+    {
+        return $this->dateFrom;
+    }
+
+    /** @return string|null */
+    public function getDateTo()
+    {
+        return $this->dateTo;
+    }
+
+    /** @return float|null */
+    public function getAmountMin()
+    {
+        return $this->amountMin;
+    }
+
+    /** @return float|null */
+    public function getAmountMax()
+    {
+        return $this->amountMax;
+    }
+
+    /** @return int|null */
+    public function getGlAccount()
+    {
+        return $this->glAccount;
+    }
+
+    /** @return string|null */
+    public function getCustomer()
+    {
+        return $this->customer;
+    }
+
+    /** @return string|null */
+    public function getSupplier()
+    {
+        return $this->supplier;
+    }
+
+    /** @return string|null */
+    public function getReference()
+    {
+        return $this->reference;
+    }
+
+    /** @return int|null */
+    public function getTransactionType()
+    {
+        return $this->transactionType;
+    }
+
+    /** @return string|null */
+    public function getCustomWhere()
+    {
+        return $this->customWhere;
+    }
+
+    /** @return bool Whether any filter is set */
+    public function hasFilters()
+    {
+        return $this->dateFrom !== null
+            || $this->dateTo !== null
+            || $this->amountMin !== null
+            || $this->amountMax !== null
+            || $this->glAccount !== null
+            || $this->customer !== null
+            || $this->supplier !== null
+            || $this->reference !== null
+            || $this->transactionType !== null
+            || $this->customWhere !== null;
+    }
+
+    /** @return array Serializable criteria */
+    public function toArray()
+    {
+        return array_filter(array(
+            'date_from'        => $this->dateFrom,
+            'date_to'          => $this->dateTo,
+            'amount_min'       => $this->amountMin,
+            'amount_max'       => $this->amountMax,
+            'gl_account'       => $this->glAccount,
+            'customer'         => $this->customer,
+            'supplier'         => $this->supplier,
+            'reference'        => $this->reference,
+            'transaction_type' => $this->transactionType,
+            'custom_where'     => $this->customWhere,
+        ), function($v) { return $v !== null; });
+    }
+}
