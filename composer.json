@@ -3,6 +3,7 @@
     "description": "Shared FrontAccounting platform utilities, contracts, and extension points for the KSF ecosystem",
     "type": "library",
     "license": "proprietary",
+    "version": "0.1.0",
     "require": {
         "php": ">=7.3",
         "ksfraser/exceptions": "^1.3",
