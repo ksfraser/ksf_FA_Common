@@ -42,8 +42,10 @@ rsync -av \
 echo ""
 echo "Running composer install --no-dev in ${TARGET}"
 
-if command -v composer >/dev/null 2>&1; then
+if [ -f "$TARGET/composer.json" ] && command -v composer >/dev/null 2>&1; then
     (cd "$TARGET" && composer install --no-dev --no-interaction --prefer-dist 2>&1)
+elif [ ! -f "$TARGET/composer.json" ]; then
+    echo "No composer.json in ${TARGET}; skipping composer install."
 else
     echo "composer not found; skipping composer install. Run manually in ${TARGET}" >&2
 fi
