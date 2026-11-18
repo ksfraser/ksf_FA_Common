@@ -12,8 +12,9 @@ set -euo pipefail
 
 MODULE="${1:?Usage: $0 <module-name>}"
 
-SOURCE="${HOME}/Documents/${MODULE}"
-TARGET="${HOME}/Documents/ksf_Infrastructure/fa_modules/${MODULE}"
+KSF_DOCS_DIR="${KSF_DOCS_DIR:-/home/kevin/Documents}"
+SOURCE="${KSF_DOCS_DIR}/${MODULE}"
+TARGET="${KSF_DOCS_DIR}/ksf_Infrastructure/fa_modules/${MODULE}"
 
 if [ ! -d "$SOURCE" ]; then
     echo "Source does not exist: $SOURCE" >&2
