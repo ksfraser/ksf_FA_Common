@@ -43,7 +43,10 @@ echo ""
 echo "Running composer install --no-dev in ${TARGET}"
 
 if [ -f "$TARGET/composer.json" ] && command -v composer >/dev/null 2>&1; then
-    (cd "$TARGET" && composer install --no-dev --no-interaction --prefer-dist 2>&1)
+    if ! (cd "$TARGET" && composer install --no-dev --no-interaction --prefer-dist 2>&1); then
+        echo "composer install failed, trying composer update..."
+        (cd "$TARGET" && composer update --no-dev --no-interaction --prefer-dist 2>&1)
+    fi
 elif [ ! -f "$TARGET/composer.json" ]; then
     echo "No composer.json in ${TARGET}; skipping composer install."
 else
