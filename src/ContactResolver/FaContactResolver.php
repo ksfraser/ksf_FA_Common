@@ -1,4 +1,10 @@
 <?php
+declare(strict_types=1);
+
+namespace ksfraser\FrontAccounting\Common\ContactResolver;
+
+use ksfraser\FrontAccounting\Common\ContactResolver\Contract\ContactResolverInterface;
+
 /**
  * FaContactResolver — the FrontAccounting implementation of the shared contact
  * resolver.
@@ -14,62 +20,10 @@
  *   get_crm_contact($id)                      one contact relation row
  *   get_person_contacts($id)                  a person's contact CATEGORY ids
  *
- * This is the same shape and the same discipline as
- * ksfraser\CommonDb\Adapter\FaDbAdapter (the DbConnectionInterface precedent):
- * one contract, one FA implementation that is mandatory at runtime, and one
- * non-FA implementation for tests/standalone (InMemoryContactResolver).
- *
- * VERIFIED NATIVE-COVERAGE GAPS (FA 2.4.3) — read before relying on a lookup:
- *
- *  1. FA exposes NO native person-by-email lookup.  The only native way to
- *     enumerate people is get_crm_persons(), which INNER JOINs crm_contacts —
- *     so it can only see people that have at least one contact relation.  A
- *     person with no relation (e.g. one created by an inbound-email
- *     match-or-create flow, which deliberately creates an UNLINKED person) is
- *     NOT reachable by email through the native API.  This class therefore
- *     scans the native relation query and matches on email; a platform that
- *     needs unlinked people must supply its own implementation of
- *     ContactResolverInterface (DI) or answer the `ksf_contact_resolve` hook.
- *
- *  2. FA's native CRM functions never expose `crm_contacts`.`entity_id`
- *     (get_crm_persons() selects t.*, p.*, r.id AS contact_id; get_crm_contact()
- *     selects t.type, t.action, p.*, r.person_id, r.id).  The relation can
- *     therefore only be resolved DEBTOR -> CONTACTS, never PERSON -> DEBTOR,
- *     without writing SQL against an FA core table.  That direction is
- *     deliberately absent from the contract.
- *
- * Neither gap is worked around with SQL: a platform that needs them uses the
- * contract's other implementation.
- *
- * @BABOK Related: TBD — no requirement id for the shared contact resolver
- *                 exists in this repo's ProjectDcs (doc/ProjectDocuments/
- *                 ProjectDcs is empty); the decision and the native function
- *                 list are recorded in ksf_Architecture_Docs AGENTS_ARCH.md
- *                 §12.2. The closest estate requirement is FR-EM-001-03
- *                 (ksf_Architecture_Docs/Requirements/).
- *
  * @package ksfraser\FrontAccounting\Common\ContactResolver
  * @since   2.2.0
  */
 
-declare(strict_types=1);
-
-namespace ksfraser\FrontAccounting\Common\ContactResolver;
-
-use ksfraser\FrontAccounting\Common\ContactResolver\Contract\ContactResolverInterface;
-
-/**
- * Contact resolver backed by FA's native CRM functions.
- *
- * Person-only operations (findById, findByEmail, search, listContactCategoryIds)
- * are delegated to FaPersonResolver.  Contact-relation operations
- * (findContactById, findByCustomer, findByEntity) are handled here directly
- * because they need the crm_contacts relation data that get_crm_contact() and
- * get_crm_persons() provide.
- *
- * @package ksfraser\FrontAccounting\Common\ContactResolver
- * @since   2.2.0
- */
 final class FaContactResolver implements ContactResolverInterface
 {
     /** @var FaPersonResolver Person-only resolver used internally */
@@ -208,86 +162,58 @@ final class FaContactResolver implements ContactResolverInterface
 
         $this->ensureNativeFunctions();
 
-        $row = $this->callFa('get_crm_contact', [$contactId]);
-        if (\is_array($row) && isset($row['person_id'])) {
-            // get_crm_contact() returns t.type, t.action, p.*, r.person_id, r.id —
-            // so 'id' is the CONTACT id and 'person_id' is the PERSON id.
-            return Contact::fromArray([
-                'id'         => $row['person_id'],
-                'name'       => $row['name'] ?? '',
-                'name2'      => $row['name2'] ?? '',
-                'email'      => $row['email'] ?? '',
-                'phone'      => $row['phone'] ?? '',
-                'ref'        => $row['ref'] ?? '',
-                'address'    => $row['address'] ?? '',
-                'type'       => $row['type'] ?? null,
-                'action'     => $row['action'] ?? null,
-                'contact_id' => $row['id'] ?? null,
-                'inactive'   => $row['inactive'] ?? false,
-            ]);
-        }
-
-        // Fallback: get_crm_contact may fail if the contact relation row exists
-        // but the join fails, or if there's a data issue. Try querying
-        // crm_contacts directly for the relation id, then look up the person.
-        $this->log('info', 'get_crm_contact('.$contactId.') returned nothing, trying fallback lookup');
-        $personId = $this->findPersonIdByContactRelationId($contactId);
-        if ($personId === null) {
+        if (!function_exists('db_query')) {
             return null;
         }
 
-        $person = $this->callFa('get_crm_person', [$personId]);
-        if (\is_array($person) && isset($person['id'])) {
-            return Contact::fromArray([
-                'id'         => $person['id'],
-                'name'       => $person['name'] ?? '',
-                'name2'      => $person['name2'] ?? '',
-                'email'      => $person['email'] ?? '',
-                'phone'      => $person['phone'] ?? '',
-                'ref'        => $person['ref'] ?? '',
-                'address'    => $person['address'] ?? '',
-                'type'       => null,
-                'action'     => null,
-                'contact_id' => $contactId,
-                'inactive'   => $person['inactive'] ?? false,
-            ]);
-        }
+        // Get table prefix from global config — TB_PREF may not be defined
+        // when called from certain contexts (e.g., during FA bootstrap).
+        global $db_connections;
+        $tbpref = $db_connections[0]['tbpref'] ?? '0_';
 
-        return null;
-    }
-
-    /**
-     * Find person_id from crm_contacts by contact relation id.
-     *
-     * Used as fallback when get_crm_contact() fails but the contact relation
-     * row exists in the database.
-     *
-     * @param int $contactId Contact relation id (crm_contacts.id)
-     * @return int|null Person id (crm_persons.id) or null
-     */
-    private function findPersonIdByContactRelationId(int $contactId): ?int
-    {
-        if (!function_exists('db_query') || !function_exists('db_fetch')) {
+        // Query crm_contacts directly for the person_id, then get_crm_person()
+        // for person data. This avoids get_crm_contact() which does an INNER
+        // JOIN with crm_categories and can return nothing when the category
+        // row doesn't match.
+        $sql = "SELECT r.person_id FROM " . $tbpref . "crm_contacts r WHERE r.id = " . (int) $contactId;
+        $result = db_query($sql);
+        if ($result === false || !($row = db_fetch_assoc($result))) {
             return null;
         }
 
-        $sql = "SELECT person_id FROM " . TB_PREF . "crm_contacts
-                WHERE id = " . (int)$contactId . " LIMIT 1";
-        $result = @db_query($sql);
-        if (!$result) {
+        $personId = (int) $row['person_id'];
+
+        // Get person data directly from crm_persons — don't rely on
+        // get_crm_person() which may not be defined in all contexts.
+        $sql = "SELECT * FROM " . $tbpref . "crm_persons WHERE id = " . $personId;
+        $result = db_query($sql);
+        if ($result === false || !($personRow = db_fetch_assoc($result))) {
             return null;
         }
 
-        $row = db_fetch($result);
-        if ($row && isset($row['person_id'])) {
-            return (int)$row['person_id'];
-        }
-
-        return null;
+        return Contact::fromArray([
+            'id'         => $personRow['id'],
+            'name'       => $personRow['name'] ?? '',
+            'name2'      => $personRow['name2'] ?? '',
+            'email'      => $personRow['email'] ?? '',
+            'phone'      => $personRow['phone'] ?? '',
+            'phone2'     => $personRow['phone2'] ?? '',
+            'ref'        => $personRow['ref'] ?? '',
+            'address'    => $personRow['address'] ?? '',
+            'type'       => $personRow['type'] ?? null,
+            'action'     => $personRow['action'] ?? null,
+            'contact_id' => $contactId,
+            'inactive'   => $personRow['inactive'] ?? false,
+        ]);
     }
 
     /**
      * Call a native FA function defensively.
+     *
+     * A missing function, or one that throws (FA's get_crm_person() writes to
+     * an array offset of a false result when the id does not exist, which is a
+     * fatal on PHP 8), must never take a page down: the resolver degrades to
+     * "no contact".
      *
      * @param string $function  Native function name
      * @param array  $arguments Call arguments
@@ -311,6 +237,12 @@ final class FaContactResolver implements ContactResolverInterface
     /**
      * Make sure FA's native CRM functions are loaded.
      *
+     * `includes/db/crm_contacts_db.inc` is NOT auto-loaded by
+     * `includes/main.inc`; a module calling these functions must include it.
+     * The file is a pure function-definition file, so a guarded include_once is
+     * safe.  Outside FA (no $path_to_root) this is a no-op and every lookup
+     * simply returns "no contact".
+     *
      * @return void
      */
     private function ensureNativeFunctions(): void
@@ -333,5 +265,43 @@ final class FaContactResolver implements ContactResolverInterface
         if (is_file($file)) {
             include_once $file;
         }
+    }
+
+    /**
+     * Normalise a native result into a list of rows.
+     *
+     * get_crm_persons() returns a db result set (an object) that must be read
+     * with FA's db_fetch(); get_customer_contacts() returns a plain array of
+     * rows.  Both are accepted.
+     *
+     * @param mixed $result Native return value
+     *
+     * @return array<int, array> Rows
+     */
+    private function rowsFrom($result): array
+    {
+        if (\is_array($result)) {
+            $rows = [];
+            foreach ($result as $row) {
+                if (\is_array($row)) {
+                    $rows[] = $row;
+                }
+            }
+
+            return $rows;
+        }
+
+        if (\is_object($result) && function_exists('db_fetch')) {
+            $rows = [];
+            while (($row = db_fetch($result)) !== false && $row !== null) {
+                if (\is_array($row)) {
+                    $rows[] = $row;
+                }
+            }
+
+            return $rows;
+        }
+
+        return $rows;
     }
 }

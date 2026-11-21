@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "f4227bd9437866b52d46d777223a8cfc",
+    "content-hash": "e811b348940bc2d13f0297658c3264a4",
     "packages": [
         {
             "name": "ksfraser/exceptions",
@@ -48,6 +48,49 @@
                 "source": "https://github.com/ksfraser/Exceptions/tree/v1.3.0"
             },
             "time": "2026-05-09T22:11:29+00:00"
+        },
+        {
+            "name": "ksfraser/related-to-core",
+            "version": "1.0.1",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/ksfraser/ksf-related-to-core.git",
+                "reference": "7f6b4e951c542d074ecd04e463b491f47d297480"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/ksfraser/ksf-related-to-core/zipball/7f6b4e951c542d074ecd04e463b491f47d297480",
+                "reference": "7f6b4e951c542d074ecd04e463b491f47d297480",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=7.3"
+            },
+            "require-dev": {
+                "phpunit/phpunit": "^9.6"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "ksfraser\\RelatedTo\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "GPL-3.0"
+            ],
+            "authors": [
+                {
+                    "name": "Kevin Fraser",
+                    "email": "kevin@ksfraser.com"
+                }
+            ],
+            "description": "Framework-agnostic related-records core: DTOs, repository interface, exceptions, and UI renderer contracts",
+            "support": {
+                "issues": "https://github.com/ksfraser/ksf-related-to-core/issues",
+                "source": "https://github.com/ksfraser/ksf-related-to-core/tree/v1.0.1"
+            },
+            "time": "2026-11-05T23:38:43+00:00"
         }
     ],
     "packages-dev": [

@@ -85,6 +85,7 @@ final class ContactResolver implements ContactResolverInterface
      */
     public function findById(int $personId): ?Contact
     {
+        // First try as person id
         $contacts = $this->dispatchContacts(
             ContactResolverHookContract::OP_BY_ID,
             ['person_id' => $personId],
@@ -95,7 +96,12 @@ final class ContactResolver implements ContactResolverInterface
             }
         );
 
-        return $contacts[0] ?? null;
+        if ($contacts !== []) {
+            return $contacts[0];
+        }
+
+        // Fall back to findContactById (handles contact relation ids from notes link table)
+        return $this->fallback->findContactById($personId);
     }
 
     /**

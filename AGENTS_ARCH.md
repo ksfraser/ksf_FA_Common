@@ -1379,6 +1379,100 @@ contact registry is FA core's, so it keeps FA core's names — `0_crm_persons`,
 counterpart for it. Our naming rule applies to tables we own, not to tables
 FA owns.
 
+### 12.3 Entity Type Registry — RELATED_ENTITY_TYPES hook
+
+**The entity registry** (`ksfraser\FrontAccounting\Common\Repository\EntityRegistry`)
+is the base, cross-module definition of the entity types a record can be related
+to. Each entry names the table, primary key, label column, picker flag, and
+link roles — enough for a resolver to look a record up by id.
+
+**Ownership.** FA-native (platform) types are defined in
+`Common\EntityRegistry::buildRegistry()` with bare keys — these belong to FA
+core itself, not to any KSF module. Every other type belongs to its owning
+module: CRM owns `opportunity`, Calendar owns `meeting`/`event`/`calendar`,
+Project Management owns `project`/`task`, etc. Notes is a consumer, not an
+owner — it is just one place where records can be *related to* those types.
+
+**Type-key namespacing.** A type key relates to its owning module:
+`crm_opportunity`, `calendar_meeting`, `pm_project`, etc. A module must not
+register a type it does not own — Calendar must not register `invoice`, Invoice
+must not register `meeting`. FA core types use bare keys (`customer`,
+`supplier`, `item`, `invoice`, `contact`, `sales_order`, `purchase_order`);
+module-owned types use namespaced keys (`crm_*`, `calendar_*`, `pm_*`,
+etc.).
+
+**Module registration.** A module that owns entity types extends
+`Common\EntityRegistry`, overrides `buildRegistry()` to add its types (via
+`parent::buildRegistry()` + its own entries), and optionally answers the
+`RELATED_ENTITY_TYPES` hook to contribute types at runtime. The hook is fired
+inside `Common\EntityRegistry::buildRegistry()` after the base types are built,
+so module-contributed types merge in on every `buildRegistry()`/`all()`/`get()`
+call.
+
+**Transition strategy.** `ksf_FA_Notes\EntityRegistry` keeps bare-key stopgap
+definitions for types not yet owned by a dedicated module
+(`meeting`, `opportunity`, `contract`, `project`, `task`, `calendar`,
+`attachment`). These stopgaps are removed as each owning module comes online
+and registers its own namespaced key via `RELATED_ENTITY_TYPES`. Existing link
+rows in `0_ksf_Notes_link` and `0_ksf_RelatedTo` that use bare keys continue
+to resolve because `Common\EntityRegistry` still defines them.
+
+**Link roles.** Each module declares its own link roles via `linkRoles()` on its
+registry extension. `Common\EntityRegistry` provides `defaultLinkRoles()`
+(`['reference' => 'Reference']`) as the fallback.
+
+**Types currently in the registry:**
+
+| Type key | Namespaced key | Table | PK | Label | Owner | Picker |
+|---|---|---|---|---|---|---|
+| customer | — | debtors_master | debtor_no | name | FA core | yes |
+| supplier | — | suppliers | supplier_id | supplier_name | FA core | yes |
+| item | — | stock_master | stock_id | stock_id | FA core | yes |
+| sales_order | — | sales_orders | order_no | order_no | FA core | no |
+| purchase_order | — | purch_orders | order_no | reference | FA core | no |
+| invoice | — | debtor_trans | trans_no | trans_no | FA core | no |
+| contact | — | crm_persons | id | name | FA core / CRM | yes |
+| — | crm_opportunity | crm_opportunities | id | name | CRM | yes |
+| — | calendar_meeting | crm_meetings | id | name | Calendar | yes |
+| — | calendar_calendar | crm_calendar | id | title | Calendar | yes |
+| — | pm_project | projects | project_id | name | PM | yes |
+| — | pm_task | project_tasks | id | name | PM | yes |
+| contract | — | ksf_contract | id | name | Notes (stopgap) | no |
+| attachment | — | attachments | id | name | Notes (stopgap) | yes |
+
+**Notes stopgaps (bare keys, to be removed when owning module registers):**
+- `meeting` → will become `calendar_meeting` when Calendar registers it
+- `opportunity` → will become `crm_opportunity` when CRM registers it
+- `project` → will become `pm_project` when Project Management registers it
+- `task` → will become `pm_task` when Project Management registers it
+- `calendar` → will become `calendar_calendar` when Calendar registers it
+
+**Hook name:** `RELATED_ENTITY_TYPES` (renamed from `NOTES_ENTITY_TYPES` — the
+old name was a misnomer; Notes was merely the first module enhanced, but the
+types are all for RelatedTo lookups). Listeners receive
+`['types' => &]` by reference and may add/replace entries.
+
+**Resolved display DTOs.** Persistence (`RelatedRecordDto`) and display
+(`ResolvedRelatedRecordDto`) are separate concerns. The base class lives in
+`ksfraser\RelatedTo\DTO\ResolvedRelatedRecordDto` and wraps a `RelatedRecordDto`
+with `fields[]`, overridable `labels[]`, and `url`. Each module that owns a
+related record type subclasses it (e.g. `ContactResolvedDto`,
+`InvoiceResolvedDto`, `CustomerResolvedDto`) and provides its own
+`toString()`/`toHtml()`. The renderer calls `toHtml()`/`toHtmlA()`/`toTd()` —
+it never runs raw SQL. Contact display (First + Last name, optional index)
+defaults through `ksf_FA_Common`'s `ContactResolver` (hook-first via
+`ksf_contact_resolve`); CRM or a future `ksf_FA_Contact` overrides by
+registering a listener.
+
+**`RELATED_TO_FIELDS` hook.** Broadcast hook answered by the owning module of a
+related record type. Payload:
+`['module' => <consumer>, 'type' => <rhs type key>, 'fields' => &[]]`.
+`fields` maps a DTO field name to its human display label, e.g.
+`['invoiceNo' => 'Invoice No', 'reference' => 'Reference']`. RelatedTo itself
+owns no record type and contributes no fields; each owning module answers with
+its own. Consumers may override labels before calling `render()`/`toHtml()`.
+Implemented in `ksf_FA_RelatedTo/hooks.php`.
+
 ## 13. RBAC Architecture (ksf_FA_RBAC)
 
 ### Design Document
